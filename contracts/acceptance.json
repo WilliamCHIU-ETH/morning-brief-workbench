@@ -1,0 +1,134 @@
+{
+  "$note": "台股晨報 9:16 成片的自動驗收門檻。observed 欄位是 V4c 實測值（2026-08-26，project-20260825-120500-dingyuan-0821），threshold 是據此定的門檻。改門檻必須附上新的實測來源。",
+  "reference": {
+    "project": "project-20260825-120500-dingyuan-0821",
+    "revision": "V4c",
+    "durationSec": 48.6,
+    "visualForm": "fullframe",
+    "slots": 9,
+    "cleanChars": 236,
+    "captions": 22
+  },
+  "gates": [
+    {
+      "id": "script.length",
+      "stage": "script",
+      "rule": "clean 字數落在片長目標的換算區間內",
+      "observed": 236,
+      "threshold": { "minChars": 200, "maxChars": 260 },
+      "source": "晨報講稿時長換算表.md"
+    },
+    {
+      "id": "script.hook-first",
+      "stage": "script",
+      "rule": "第一句必須是 hook（問句或懸念），問候不得出現在第一句之前",
+      "observed": "鼎元昨天鎖上漲停74.8元，今天還能追嗎？",
+      "threshold": { "hookSentenceIndex": 0 }
+    },
+    {
+      "id": "script.no-cta",
+      "stage": "script",
+      "rule": "不得有口播 CTA（推薦頁籤、開啟 App 之類）",
+      "observed": 0,
+      "threshold": { "maxCtaSentences": 0 },
+      "source": "晨報腳本_ROLE.md 2026-08-26 起移除"
+    },
+    {
+      "id": "script.time-word-repeat",
+      "stage": "script",
+      "rule": "時間指稱詞（昨天／昨日／今天）出現次數上限；同一詞連續複用要扣分",
+      "observed": 4,
+      "threshold": { "maxTimeWords": 4 },
+      "status": "半解決：V4c 仍是昨天／昨日互換，沒有實際日期"
+    },
+    {
+      "id": "ledger.alternation",
+      "stage": "segment-ledger",
+      "rule": "presenter 與 mg 必須嚴格交替，首末段皆為 presenter，不得有相鄰 mg",
+      "observed": "P M P M P M P M P",
+      "threshold": { "adjacentMaterialSlots": 0, "firstForm": "presenter", "lastForm": "presenter" }
+    },
+    {
+      "id": "ledger.min-presenter",
+      "stage": "segment-ledger",
+      "rule": "最短 presenter 段長度",
+      "observed": 3.02,
+      "threshold": { "minPresenterSec": 3.0 }
+    },
+    {
+      "id": "ledger.max-material-run",
+      "stage": "segment-ledger",
+      "rule": "單一 mg 段最長長度（連續被素材蓋住的時間）",
+      "observed": 6.26,
+      "threshold": { "maxMaterialRunSec": 6.5 }
+    },
+    {
+      "id": "ledger.coverage",
+      "stage": "segment-ledger",
+      "rule": "素材蓋住主播的時間佔比",
+      "observed": 0.44,
+      "threshold": { "maxCoverage": 0.5 },
+      "counterexample": "V2 為 0.969，主播只露臉 1.85s，被判定為主要缺陷"
+    },
+    {
+      "id": "ledger.greeting-uncovered",
+      "stage": "segment-ledger",
+      "rule": "問候句所在的時間區間必須落在 presenter 段內，不得被素材蓋掉",
+      "observed": "slot 01 presenter 0–5.47 含 HOOK＋問候",
+      "threshold": { "greetingCoveredByMaterial": false }
+    },
+    {
+      "id": "caption.no-trailing-punct",
+      "stage": "caption-ledger",
+      "rule": "字幕不以句號、逗號、頓號、分號、冒號結尾（？！保留）",
+      "observed": 0,
+      "threshold": { "maxTrailingPunct": 0 }
+    },
+    {
+      "id": "caption.snap-to-cuts",
+      "stage": "caption-ledger",
+      "rule": "字幕起點貼齊 B-roll 切點的比率（貼齊點必須落在前字講完與本字開始之間的語意停頓內）",
+      "observed": 0.944,
+      "threshold": { "minSnapRatio": 0.9 },
+      "source": "V4b 實測 18 個邊界有 17 個重合"
+    },
+    {
+      "id": "caption.char-coverage",
+      "stage": "caption-ledger",
+      "rule": "字幕 cleanCharCount 總和必須等於講稿 clean 字數（合併字幕時容易掉）",
+      "observed": 236,
+      "threshold": { "mustEqualScriptChars": true },
+      "counterexample": "合併短字幕時掉過 6 字，變成 230/236"
+    },
+    {
+      "id": "video.fps-no-drop",
+      "stage": "speedup",
+      "rule": "輸出 fps 必須大於等於 輸入 fps × 速度倍率，否則會丟格",
+      "observed": "30 >= 25 x 1.1 = 27.5",
+      "threshold": { "outputFpsGteInputTimesSpeed": true },
+      "counterexample": "app/run.js 未設 -r，輸出留在 25，25x1.2=30 時丟掉 16.6% 的格"
+    },
+    {
+      "id": "mg.hyperframes-clean",
+      "stage": "mg-render",
+      "rule": "每一格 hyperframes check 必須 0 error",
+      "observed": 0,
+      "threshold": { "maxErrors": 0 },
+      "source": "npx --yes hyperframes@0.8.3 check"
+    },
+    {
+      "id": "mg.prompt-provenance",
+      "stage": "mg-render",
+      "rule": "每一格的 prompt.txt 與實際 output 必須以 SHA-256 配對；prompt 文字相同不等於可共用 provenance",
+      "threshold": { "everySlotHashMatched": true },
+      "source": "CLAUDE.md B-roll Prompt provenance 隨 Revision 分版"
+    },
+    {
+      "id": "frame.qa-text-match",
+      "stage": "frame-qa",
+      "rule": "定格畫面上的文字必須與該格 prompt.txt 一致；不一致時 prompt 為真，重生成畫面",
+      "threshold": { "mismatches": 0 },
+      "counterexample": "slot 06 render 寫「美股道瓊」而 prompt 寫「道瓊」，修 render 不修 prompt"
+    }
+  ]
+}
