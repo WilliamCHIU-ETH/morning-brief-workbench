@@ -1,0 +1,48 @@
+{
+  "$note": "主播影片生成的鎖定參數。2026-08-27 驗證：API 有 motion_prompt 與 expressiveness，不需要走網頁 Studio。",
+  "endpoint": "POST https://api.heygen.com/v3/videos",
+  "poll": "GET https://api.heygen.com/v3/videos/{video_id}",
+  "payload": {
+    "type": "avatar",
+    "engine": { "type": "avatar_iv" },
+    "aspect_ratio": "9:16",
+    "resolution": "1080p",
+    "motion_prompt": "Seated with hands resting on the desk, barely move.",
+    "expressiveness": "low",
+    "voice_settings": { "speed": 1.1 }
+  },
+  "locked": [
+    {
+      "field": "motion_prompt",
+      "value": "Seated with hands resting on the desk, barely move.",
+      "why": "V4c 實際用的字串（使用者在 Studio Advanced Settings 填入）。命中官方列出的 stillness 關鍵詞 hands still／barely move，且符合官方寫法規則：[身體部位]+[動作]+[強度]，不超過兩個短句。",
+      "counterexample": "V3 用「站姿自然，雙手在胸前或身側做出適度自然的手勢，配合語氣比劃，不要十指交握不動」——對坐姿主播下站姿指令，且明確要求手勢。結果就是手一直上下擺。"
+    },
+    {
+      "field": "expressiveness",
+      "value": "low",
+      "why": "API 預設就是 low。要靜就用預設。",
+      "counterexample": "V3 送了 medium，主動把幅度調高，與 motion_prompt 的問題疊加。"
+    },
+    {
+      "field": "voice_settings.speed",
+      "value": 1.1,
+      "why": "v3 才有的欄位（範圍 0.5–2.0）。在生成端改速就不必用 ffmpeg setpts／atempo，因此沒有重複格、沒有二次編碼、也沒有 Studio 與 API 的語速偏差。",
+      "unverified": "TTS 改速是重新合成，不是時間拉伸，所以每秒乾淨字數必須重新量。晨報講稿時長換算表.md 的 4.70–4.91 字／秒是 ffmpeg 1.2× 後校準的，不可直接套用。",
+      "source": "app/run.js:645、app/scripts/heygen-video-title.js:1614（buildTextDrivenV3Payload）"
+    }
+  ],
+  "notLocked": {
+    "avatar_id": "隨主播決定。V3／V4c 用的是 2ee530cfcdc62055d8b34a95b0c94300（Angela 直式）",
+    "voice_id": "隨聲音決定。V3／V4c 用的是 df750e70c02c421fac1b532dfeb0989b"
+  },
+  "gate": {
+    "id": "avatar.payload-locked",
+    "rule": "送出前必須逐欄比對本檔的 locked 值；任何一欄不符就擋下，因為這是唯一不可逆且有成本的步驟",
+    "humanApproval": "必須：dry-run payload 出示 → 取得明確同意 → 才呼叫"
+  },
+  "sources": [
+    "https://developers.heygen.com/avatar-iv",
+    "https://help.heygen.com/en/articles/12805098-fine-tune-avatar-gestures-and-movements-with-custom-motion-prompts-avatar-iv-v"
+  ]
+}

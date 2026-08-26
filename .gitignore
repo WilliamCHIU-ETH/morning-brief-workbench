@@ -1,0 +1,7 @@
+node_modules/
+
+# gate runner 的產出，每次執行都會重寫
+gate-report.json
+
+# 各階段在 project 目錄裡的產物（fixtures 裡的輸入檔要進版控，產物不要）
+*.provenance.json
