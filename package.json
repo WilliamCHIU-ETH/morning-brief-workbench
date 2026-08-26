@@ -1,0 +1,9 @@
+{
+  "name": "morning-brief-harness",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "lint:script": "node stages/lint-script.mjs",
+    "gates": "node stages/run-gates.mjs"
+  }
+}
