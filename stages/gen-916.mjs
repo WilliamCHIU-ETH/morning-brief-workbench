@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { shell, C, D, root } from './comp-shell-916-v4.mjs';
+import { shell, C, D, root } from './comp-shell-916.mjs';
 const out = {};
 
 /* 02 台股／美股 上下等高分割。主數字同字級，落差交給顏色 */

@@ -1,4 +1,4 @@
-// Forced alignment: script.v3-final-b.txt (truth) x ASR char timings -> scriptCharTimes.json
+// Forced alignment：講稿（真值）x ASR 逐字時間 -> asr/script-char-times.json
 // 與 app/scripts/correct-subtitles.js 同法（Needleman-Wunsch 全域對齊），
 // 但只寫進本 project，不碰 app/src。
 import fs from 'node:fs';
@@ -6,20 +6,25 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
+import { resolveProject, readJson, writeJson } from './lib/project.mjs';
+
 const require = createRequire(import.meta.url);
-const { getBodyAfterVoice, cleanBodyWithIndex } =
-  require('/Users/chiu/Developer/marketing-video/app/scripts/script-utils.js');
-
 const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, '..');
-const DURATION = Number(process.argv[2]);
-if (!Number.isFinite(DURATION)) throw new Error('usage: align-script.mjs <durationSec>');
+const { getBodyAfterVoice, cleanBodyWithIndex } = require(path.join(here, 'script-utils.js'));
 
-const raw = fs.readFileSync(path.join(root, 'script/script.v4-nocta.txt'), 'utf8');
+const P = resolveProject();
+const argv = process.argv.slice(2);
+const di = argv.indexOf('--duration');
+const DURATION = Number(di >= 0 ? argv[di + 1] : NaN);
+if (!Number.isFinite(DURATION)) {
+  throw new Error('usage: align-script.mjs --project <dir> --duration <sec>');
+}
+
+const raw = fs.readFileSync(P.path('script'), 'utf8');
 const scriptChars = cleanBodyWithIndex(getBodyAfterVoice(raw)); // [{ch, origIdx}]
 const S = scriptChars.map((c) => c.char);
 
-const asr = JSON.parse(fs.readFileSync(path.join(root, 'asr-v4n/subtitles.raw.json'), 'utf8'));
+const asr = readJson(P, 'asrRaw');
 const isContent = (ch) => /[\p{L}\p{N}]/u.test(ch);
 const A = [];
 for (const seg of asr.segments) {
@@ -77,7 +82,7 @@ const out = scriptChars.map((c, k) => ({
   end: Number(times[k].end.toFixed(3)),
   ...(times[k].interpolated ? { interpolated: true } : {}),
 }));
-fs.writeFileSync(path.join(root, 'asr-v4n/script-char-times.json'), JSON.stringify(out, null, 1));
+writeJson(P, 'charTimes', out, { inputs: ['script', 'asrRaw'] });
 console.log(JSON.stringify({
   scriptChars: n, asrChars: m, exactMatches: matched,
   matchRate: Number((matched / n).toFixed(4)),

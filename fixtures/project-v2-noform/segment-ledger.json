@@ -1,0 +1,163 @@
+{
+  "durationSec": 60.505,
+  "visualForm": "fullframe",
+  "segments": [
+    {
+      "id": "01",
+      "startSec": 1.85,
+      "endSec": 8.06,
+      "durationSec": 6.21,
+      "charRange": [
+        8,
+        32
+      ],
+      "anchor": "昨日台股開高震盪",
+      "responsibility": "台股收在哪：開高震盪與收盤指數"
+    },
+    {
+      "id": "02",
+      "startSec": 8.06,
+      "endSec": 10.98,
+      "durationSec": 2.92,
+      "charRange": [
+        33,
+        43
+      ],
+      "anchor": "記憶體與光通訊族群撐盤",
+      "responsibility": "誰在撐盤：兩個撐盤族群，其中之一連向今日焦點"
+    },
+    {
+      "id": "03",
+      "startSec": 10.98,
+      "endSec": 16.96,
+      "durationSec": 5.98,
+      "charRange": [
+        44,
+        70
+      ],
+      "anchor": "接著看昨晚美股",
+      "responsibility": "美股內部分歧：道瓊重挫但費半逆勢收紅"
+    },
+    {
+      "id": "04",
+      "startSec": 16.96,
+      "endSec": 19.52,
+      "durationSec": 2.56,
+      "charRange": [
+        71,
+        81
+      ],
+      "anchor": "鼎元漲停後",
+      "responsibility": "提出今天能不能追的問題，不給答案"
+    },
+    {
+      "id": "05",
+      "startSec": 19.52,
+      "endSec": 25.63,
+      "durationSec": 6.11,
+      "charRange": [
+        82,
+        108
+      ],
+      "anchor": "今天的焦點是鼎元",
+      "responsibility": "已發生事實：盤中買盤湧入到攻上漲停74.8元"
+    },
+    {
+      "id": "06",
+      "startSec": 25.63,
+      "endSec": 31.15,
+      "durationSec": 5.52,
+      "charRange": [
+        109,
+        138
+      ],
+      "anchor": "市場聚焦AI",
+      "responsibility": "需求端題材：AI資料中心與CPO，加上下半年放量"
+    },
+    {
+      "id": "07",
+      "startSec": 31.15,
+      "endSec": 38.23,
+      "durationSec": 7.08,
+      "charRange": [
+        139,
+        173
+      ],
+      "anchor": "鼎元正把產品組合",
+      "responsibility": "影響路徑：產品組合轉向光通訊，營收年增構成基本面支撐"
+    },
+    {
+      "id": "08",
+      "startSec": 38.23,
+      "endSec": 41.55,
+      "durationSec": 3.32,
+      "charRange": [
+        174,
+        190
+      ],
+      "anchor": "不過新產能建置",
+      "responsibility": "尚未完成的兩項執行項目"
+    },
+    {
+      "id": "09",
+      "startSec": 41.55,
+      "endSec": 46.08,
+      "durationSec": 4.53,
+      "charRange": [
+        191,
+        216
+      ],
+      "anchor": "昨日大盤成交值",
+      "responsibility": "資金環境轉保守：成交值萎縮、追價力道弱"
+    },
+    {
+      "id": "10",
+      "startSec": 46.08,
+      "endSec": 51.67,
+      "durationSec": 5.59,
+      "charRange": [
+        217,
+        243
+      ],
+      "anchor": "今天觀察光通訊",
+      "responsibility": "兩個今天可驗證的觀察指標"
+    },
+    {
+      "id": "11",
+      "startSec": 51.67,
+      "endSec": 55.31,
+      "durationSec": 3.64,
+      "charRange": [
+        244,
+        259
+      ],
+      "anchor": "若只剩題材",
+      "responsibility": "條件不成立時的紀律：先不追價"
+    },
+    {
+      "id": "12",
+      "startSec": 55.31,
+      "endSec": 60.505,
+      "durationSec": 5.2,
+      "charRange": [
+        260,
+        285
+      ],
+      "anchor": "開啟籌碼K線",
+      "responsibility": "CTA：導向 App 即時－多方頁籤"
+    }
+  ],
+  "fullframe": {
+    "canvas": "1080x1920",
+    "fit": "1:1 no scale no crop",
+    "safeBand": {
+      "top": 254,
+      "bottom": 1350,
+      "x": 48,
+      "note": "內容一律置於 #stage，強制避開標題板 y<254 與字幕／關鍵數字禁區 y>1350"
+    },
+    "coverageSec": 58.66,
+    "coverageRatio": 0.9695,
+    "avatarVisibleSec": 1.85
+  }
+}

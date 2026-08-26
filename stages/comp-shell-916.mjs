@@ -2,9 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveProject, readJson } from './lib/project.mjs';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, '..');
-const seg = JSON.parse(fs.readFileSync(path.join(root, 'segment-ledger.v4.json'), 'utf8')).segments;
+const P = resolveProject();
+const root = P.root;
+const seg = readJson(P, 'segmentLedger').segments;
 const D = Object.fromEntries(seg.map((s) => [s.id, s.durationSec]));
 
 const C = {

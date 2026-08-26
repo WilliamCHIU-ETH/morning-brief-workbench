@@ -20,7 +20,7 @@
  *   template/header.mjs       header 片段產生器
  *   segment-ledger.json       durationSec / visualForm / segments[]
  *   caption-ledger.json       字幕分段（陣列，或 {captions:[]}）
- *   script/script.v1.txt      標題兩行（=== 區塊）
+ *   script.txt      標題兩行（=== 區塊）
  *   renders/                  逐格 B-roll 成品，檔名以 <段號>- 開頭
  *   main.config.json          （選用）這支片的開關，見下
  *
@@ -52,7 +52,10 @@ import { fileURLToPath } from 'node:url';
 import { renderHeader } from '../template/header.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, '..');
+const projIdx = process.argv.indexOf('--project');
+const root = projIdx >= 0
+  ? path.resolve(process.argv[projIdx + 1])
+  : (process.env.MB_PROJECT ? path.resolve(process.env.MB_PROJECT) : die('缺少 --project <dir>'));
 
 const die = (msg) => { console.error(`❌ ${msg}`); process.exit(1); };
 const readJson = (rel) => {
@@ -75,8 +78,8 @@ const hexA = (hex, a) => {
 // ── 輸入 ───────────────────────────────────────────────────────────────────
 
 const L = readJson('template/layout.json');
-const ledger = readJson('segment-ledger.v4-assembly.json');
-const captionsRaw = readJson('caption-ledger.v4.json');
+const ledger = readJson('segment-ledger-assembly.json');
+const captionsRaw = readJson('caption-ledger.json');
 const captions = Array.isArray(captionsRaw) ? captionsRaw : captionsRaw.captions;
 if (!Array.isArray(captions) || !captions.length) die('caption-ledger.json 沒有字幕');
 
@@ -84,7 +87,7 @@ const segments = ledger.segments;
 if (!Array.isArray(segments) || !segments.length) die('segment-ledger.json 沒有 segments');
 if (typeof ledger.durationSec !== 'number') die('segment-ledger.json 缺 durationSec');
 
-const cfgFile = path.join(root, 'main.config.v3.json');
+const cfgFile = path.join(root, 'main.config.json');
 const cfg = fs.existsSync(cfgFile) ? JSON.parse(fs.readFileSync(cfgFile, 'utf8')) : {};
 
 const pkg = fs.existsSync(path.join(root, 'package.json'))
@@ -104,7 +107,7 @@ const brollAudio = cfg.brollAudio ?? Boolean(L.broll.audio?.enabled);
 // 但不能 import 它 —— HyperFrames 專案必須自我完備才能兩個 session 同時 render。
 
 function parseTitle() {
-  const file = path.join(root, 'script', 'script.v4-nocta.txt');
+  const file = path.join(root, 'script.txt');
   if (!fs.existsSync(file)) return { date: null, label: null, line2: null };
   const parts = fs.readFileSync(file, 'utf8').split('===');
   const block = parts.length >= 3 ? (parts[parts.length - 2] || '') : (parts[0] || '');
@@ -130,7 +133,7 @@ const title = {
 if (topBar === 'header' && (!title.date || !title.label))
   die('topBar=header 需要 date 與 label；講稿標題第一行解析失敗，請在 main.config.json 的 title 指定');
 if (topBar === 'title-board' && !title.line1)
-  die('topBar=title-board 需要講稿標題；script/script.v1.txt 的 === 區塊解析失敗');
+  die('topBar=title-board 需要講稿標題；script.txt 的 === 區塊解析失敗');
 
 // ── B-roll 檔名：從 renders/ 解析，不再手寫 NAMES 表 ───────────────────────
 // 兩支手寫版各自維護一張 { '01': '01-tw-market' } 的對照表，那是 12 行純粹的抄寫工作，
@@ -262,7 +265,7 @@ const introHtml = useIntro ? `    <div id="intro-frame" class="clip" data-start=
 
 let bgmHtml = '';
 if (useBgm) {
-  const B = { ...L.bgm, mixedFile: 'bgm-mixed-v4.m4a' };
+  const B = { ...L.bgm, mixedFile: 'bgm-mixed.m4a' };
   const mixed = path.join(root, 'assets', B.mixedFile);
   const src = path.join(root, 'assets', L.assets.bgm);
   const fadeOutAt = n4(totalDur - B.fadeOutSec);
@@ -345,9 +348,9 @@ ${capTweens}
 </html>
 `;
 
-fs.writeFileSync(path.join(root, 'index.v4.html'), html);
+fs.writeFileSync(path.join(root, 'index.html'), html);
 console.log(JSON.stringify({
-  output: 'index.v4.html',
+  output: 'index.html',
   compositionId,
   visualForm: ledger.visualForm || 'card',
   topBar,

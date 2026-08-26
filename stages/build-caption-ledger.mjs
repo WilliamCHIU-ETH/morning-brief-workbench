@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(here, '..');
-const T = JSON.parse(fs.readFileSync(path.join(root, 'asr-v4n/script-char-times.json'), 'utf8'));
-const ledgerSeg = JSON.parse(fs.readFileSync(path.join(root, 'segment-ledger.v4.json'), 'utf8'));
+import { resolveProject, readJson, writeJson } from './lib/project.mjs';
+
+const P = resolveProject();
+const T = readJson(P, 'charTimes');
+const ledgerSeg = readJson(P, 'segmentLedger');
 const DURATION = ledgerSeg.durationSec;
-const raw = fs.readFileSync(path.join(root, 'script/script.v4-nocta.txt'), 'utf8');
+const raw = fs.readFileSync(P.path('script'), 'utf8');
 
 // 依 references/caption-contract.md：8–18 字、最短 0.9s、無孤字、終止標點優先。
 const MIN_CH = 8, MAX_CH = 18, HARD_CH = 26, MIN_DUR = 0.9;
@@ -169,7 +170,7 @@ for (const c of ledger.captions ?? ledger) {
   c.text = String(c.text).replace(/[。，、；：]+$/u, '');
 }
 
-fs.writeFileSync(path.join(root, 'caption-ledger.v4.json'), `${JSON.stringify(ledger, null, 2)}\n`);
+writeJson(P, 'captionLedger', ledger, { inputs: ['charTimes', 'segmentLedger', 'script'] });
 
 // 機械檢查
 const problems = [];

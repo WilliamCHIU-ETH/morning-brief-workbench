@@ -1,26 +1,25 @@
-// V3 切段：以講稿文字錨點 → script-char-times.json 的真實時間。
+// 切段：以講稿文字錨點 → script-char-times.json 的真實時間。
 // 欄位依 SKILL.md「切段規則」：id / startSec / endSec / anchor / responsibility。
 // 額外帶 form（mg｜presenter｜device），因為 V3 的重點是覆蓋率而非只有切點。
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DURATION = Number(process.argv[2]);
-const chars = JSON.parse(fs.readFileSync(path.join(root, 'asr-v4n/script-char-times.json'), 'utf8'));
+import { resolveProject, readJson, writeJson } from './lib/project.mjs';
+
+const P = resolveProject();
+const argv = process.argv.slice(2);
+const di = argv.indexOf('--duration');
+const DURATION = Number(di >= 0 ? argv[di + 1] : NaN);
+if (!Number.isFinite(DURATION)) {
+  throw new Error('usage: build-segment-ledger.mjs --project <dir> --duration <sec>');
+}
+const chars = readJson(P, 'charTimes');
 const clean = chars.map((c) => c.ch).join('');
 
-const PLAN = [
-  ['01', 'presenter', '鼎元昨天鎖上漲停74.8元今天還能追嗎早安親愛的投資人',           'HOOK＋問候：問候是人講的品牌時刻，不得被圖表蓋掉'],
-  ['02', 'mg',        '昨日台股只漲214點美股道瓊還重挫703點',                        '建立漲停與大盤不強的矛盾'],
-  ['03', 'presenter', '大盤沒有特別強錢是選擇性地進去的那市場選了什麼市場買的是光通訊放量', '把矛盾收成判斷，丟出問題並自己回答'],
-  ['04', 'mg',        'AI資料中心與CPO需求升溫鼎元的光通訊產品下半年進入放量階段',   '說明需求從哪裡來'],
-  ['05', 'presenter', '基本面也接得上產品組合正從LED轉向光通訊',                      '轉向基本面，建立利多印象'],
-  ['06', 'mg',        '公司規劃投入12億元擴產不過這裡有個時間差',                     '給出投入規模，並把時間差視覺化'],
-  ['07', 'presenter', '擴產要蓋客戶要認證產品要真的出貨這三件都還在進行放量沒發生題材就只是題材', '揭露代價，全片最強的反轉'],
-  ['08', 'mg',        '所以今天先看兩件事光通訊族群有沒有一起轉強鼎元的量能有沒有延續', '給出今天可驗證的兩個觀察點'],
-  ['09', 'presenter', '只剩題材量能跟不上就先不要追價',                              '風險附具體行動'],
-];
+const PLAN = readJson(P, 'segmentPlan').map(
+  (s) => [s.id, s.form, s.anchor, s.responsibility],
+);
 
 let cursor = 0;
 const segments = PLAN.map(([id, form, anchor, responsibility]) => {
@@ -49,7 +48,7 @@ const out = { durationSec: total, visualForm: 'fullframe', coverage: {
   materialPct: +(((cover.mg + cover.device) / total) * 100).toFixed(1),
   presenterPct: +((cover.presenter / total) * 100).toFixed(1),
 }, segments };
-fs.writeFileSync(path.join(root, 'segment-ledger.v4.json'), JSON.stringify(out, null, 2) + '\n');
+writeJson(P, 'segmentLedger', out, { inputs: ['charTimes', 'segmentPlan'] });
 
 console.log('id form      start    end     秒    責任');
 for (const s of segments) {

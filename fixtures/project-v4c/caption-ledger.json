@@ -1,0 +1,288 @@
+[
+  {
+    "id": "CAP-01",
+    "text": "鼎元昨天鎖上漲停74.8元",
+    "start": 0.05,
+    "end": 3.1,
+    "duration": 3.05,
+    "cleanCharCount": 13,
+    "scriptCharRange": [
+      0,
+      12
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-02",
+    "text": "今天還能追嗎？",
+    "start": 3.1,
+    "end": 4.12,
+    "duration": 1.02,
+    "cleanCharCount": 6,
+    "scriptCharRange": [
+      13,
+      18
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-03",
+    "text": "早安，親愛的投資人",
+    "start": 4.12,
+    "end": 5.47,
+    "duration": 1.35,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      19,
+      26
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-04",
+    "text": "昨日台股只漲214點",
+    "start": 5.47,
+    "end": 8.3,
+    "duration": 2.83,
+    "cleanCharCount": 10,
+    "scriptCharRange": [
+      27,
+      36
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-05",
+    "text": "美股道瓊還重挫703點",
+    "start": 8.3,
+    "end": 10.56,
+    "duration": 2.26,
+    "cleanCharCount": 11,
+    "scriptCharRange": [
+      37,
+      47
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-06",
+    "text": "大盤沒有特別強，錢是選擇性地進去的",
+    "start": 10.56,
+    "end": 13.76,
+    "duration": 3.2,
+    "cleanCharCount": 16,
+    "scriptCharRange": [
+      48,
+      63
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-07",
+    "text": "那市場選了什麼？",
+    "start": 13.76,
+    "end": 15.2,
+    "duration": 1.44,
+    "cleanCharCount": 7,
+    "scriptCharRange": [
+      64,
+      70
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-08",
+    "text": "市場買的是光通訊放量",
+    "start": 15.2,
+    "end": 16.98,
+    "duration": 1.78,
+    "cleanCharCount": 10,
+    "scriptCharRange": [
+      71,
+      80
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-09",
+    "text": "AI資料中心與CPO需求升溫",
+    "start": 16.98,
+    "end": 19.53,
+    "duration": 2.55,
+    "cleanCharCount": 14,
+    "scriptCharRange": [
+      81,
+      94
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-10",
+    "text": "鼎元的光通訊產品下半年進入放量階段",
+    "start": 19.53,
+    "end": 22.44,
+    "duration": 2.91,
+    "cleanCharCount": 17,
+    "scriptCharRange": [
+      95,
+      111
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-11",
+    "text": "基本面也接得上",
+    "start": 22.44,
+    "end": 24.06,
+    "duration": 1.62,
+    "cleanCharCount": 7,
+    "scriptCharRange": [
+      112,
+      118
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-12",
+    "text": "產品組合正從LED轉向光通訊",
+    "start": 24.06,
+    "end": 26.49,
+    "duration": 2.43,
+    "cleanCharCount": 14,
+    "scriptCharRange": [
+      119,
+      132
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-13",
+    "text": "公司規劃投入12億元擴產",
+    "start": 26.49,
+    "end": 29.16,
+    "duration": 2.67,
+    "cleanCharCount": 12,
+    "scriptCharRange": [
+      133,
+      144
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-14",
+    "text": "不過，這裡有個時間差",
+    "start": 29.16,
+    "end": 31.08,
+    "duration": 1.92,
+    "cleanCharCount": 9,
+    "scriptCharRange": [
+      145,
+      153
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-15",
+    "text": "擴產要蓋、客戶要認證",
+    "start": 31.08,
+    "end": 33.36,
+    "duration": 2.28,
+    "cleanCharCount": 9,
+    "scriptCharRange": [
+      154,
+      162
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-16",
+    "text": "產品要真的出貨，這三件都還在進行",
+    "start": 33.36,
+    "end": 36.75,
+    "duration": 3.39,
+    "cleanCharCount": 15,
+    "scriptCharRange": [
+      163,
+      177
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-17",
+    "text": "放量沒發生，題材就只是題材",
+    "start": 36.75,
+    "end": 39.32,
+    "duration": 2.57,
+    "cleanCharCount": 12,
+    "scriptCharRange": [
+      178,
+      189
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-18",
+    "text": "所以今天先看兩件事",
+    "start": 39.32,
+    "end": 41.47,
+    "duration": 2.15,
+    "cleanCharCount": 9,
+    "scriptCharRange": [
+      190,
+      198
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-19",
+    "text": "光通訊族群有沒有一起轉強",
+    "start": 41.47,
+    "end": 43.65,
+    "duration": 2.18,
+    "cleanCharCount": 12,
+    "scriptCharRange": [
+      199,
+      210
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-20",
+    "text": "鼎元的量能有沒有延續",
+    "start": 43.65,
+    "end": 45.58,
+    "duration": 1.93,
+    "cleanCharCount": 10,
+    "scriptCharRange": [
+      211,
+      220
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-21",
+    "text": "只剩題材、量能跟不上",
+    "start": 45.58,
+    "end": 47.4,
+    "duration": 1.82,
+    "cleanCharCount": 9,
+    "scriptCharRange": [
+      221,
+      229
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-22",
+    "text": "就先不要追價",
+    "start": 47.4,
+    "end": 48.6,
+    "duration": 1.2,
+    "cleanCharCount": 6,
+    "scriptCharRange": [
+      230,
+      235
+    ],
+    "reason": "script-end"
+  }
+]

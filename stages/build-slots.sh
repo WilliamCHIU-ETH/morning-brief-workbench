@@ -2,7 +2,7 @@
 cd "$(dirname "$0")/.."
 declare -a NAMES=(02-market-split 04-demand-chain 06-time-gap 08-watch-two)
 for f in "${NAMES[@]}"; do
-  n="${f%%-*}"; d="qa/v4-slot$n"
+  n="${f%%-*}"; d="qa/slot$n"
   mkdir -p "$d"; cp "compositions/$f.html" "$d/index.html"
   ln -sfn ../../assets "$d/assets"; cp hyperframes.json "$d/"
   printf "slot %s  " "$n"

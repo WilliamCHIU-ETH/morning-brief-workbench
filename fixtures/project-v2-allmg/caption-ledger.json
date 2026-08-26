@@ -1,0 +1,327 @@
+[
+  {
+    "id": "CAP-01",
+    "text": "早安，親愛的投資人。",
+    "start": 0.2,
+    "end": 1.67,
+    "duration": 1.47,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      0,
+      7
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-02",
+    "text": "昨日台股開高震盪，",
+    "start": 1.67,
+    "end": 3.64,
+    "duration": 1.97,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      8,
+      15
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-03",
+    "text": "終場上漲214點，",
+    "start": 3.64,
+    "end": 5.36,
+    "duration": 1.72,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      16,
+      23
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-04",
+    "text": "收在44,933點，",
+    "start": 5.36,
+    "end": 7.88,
+    "duration": 2.52,
+    "cleanCharCount": 9,
+    "scriptCharRange": [
+      24,
+      32
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-05",
+    "text": "記憶體與光通訊族群撐盤。",
+    "start": 7.88,
+    "end": 10.8,
+    "duration": 2.92,
+    "cleanCharCount": 11,
+    "scriptCharRange": [
+      33,
+      43
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-06",
+    "text": "接著看昨晚美股，道瓊重挫703點，",
+    "start": 10.8,
+    "end": 14.35,
+    "duration": 3.55,
+    "cleanCharCount": 15,
+    "scriptCharRange": [
+      44,
+      58
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-07",
+    "text": "費城半導體指數卻逆勢收紅。",
+    "start": 14.35,
+    "end": 16.78,
+    "duration": 2.43,
+    "cleanCharCount": 12,
+    "scriptCharRange": [
+      59,
+      70
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-08",
+    "text": "鼎元漲停後，今天還能追嗎？",
+    "start": 16.78,
+    "end": 19.34,
+    "duration": 2.56,
+    "cleanCharCount": 11,
+    "scriptCharRange": [
+      71,
+      81
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-09",
+    "text": "今天的焦點是鼎元。",
+    "start": 19.34,
+    "end": 21.39,
+    "duration": 2.05,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      82,
+      89
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-10",
+    "text": "昨日盤中買盤湧入，",
+    "start": 21.39,
+    "end": 23.04,
+    "duration": 1.65,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      90,
+      97
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-11",
+    "text": "終場攻上漲停74.8元。",
+    "start": 23.04,
+    "end": 25.45,
+    "duration": 2.41,
+    "cleanCharCount": 11,
+    "scriptCharRange": [
+      98,
+      108
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-12",
+    "text": "市場聚焦AI資料中心與CPO需求，",
+    "start": 25.45,
+    "end": 28.47,
+    "duration": 3.02,
+    "cleanCharCount": 16,
+    "scriptCharRange": [
+      109,
+      124
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-13",
+    "text": "光通訊產品下半年進入放量階段。",
+    "start": 28.47,
+    "end": 30.97,
+    "duration": 2.5,
+    "cleanCharCount": 14,
+    "scriptCharRange": [
+      125,
+      138
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-14",
+    "text": "鼎元正把產品組合從LED轉向光通訊，",
+    "start": 30.97,
+    "end": 34.48,
+    "duration": 3.51,
+    "cleanCharCount": 17,
+    "scriptCharRange": [
+      139,
+      155
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-15",
+    "text": "近期營收維持年增，",
+    "start": 34.48,
+    "end": 35.86,
+    "duration": 1.38,
+    "cleanCharCount": 8,
+    "scriptCharRange": [
+      156,
+      163
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-16",
+    "text": "為股價提供基本面支撐。",
+    "start": 35.86,
+    "end": 38.05,
+    "duration": 2.19,
+    "cleanCharCount": 10,
+    "scriptCharRange": [
+      164,
+      173
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-17",
+    "text": "不過新產能建置與客戶認證都還在進行，",
+    "start": 38.05,
+    "end": 41.37,
+    "duration": 3.32,
+    "cleanCharCount": 17,
+    "scriptCharRange": [
+      174,
+      190
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-18",
+    "text": "昨日大盤成交值也降到8,000億元以下，",
+    "start": 41.37,
+    "end": 44.74,
+    "duration": 3.37,
+    "cleanCharCount": 19,
+    "scriptCharRange": [
+      191,
+      209
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-19",
+    "text": "追價力道偏保守。",
+    "start": 44.74,
+    "end": 45.9,
+    "duration": 1.16,
+    "cleanCharCount": 7,
+    "scriptCharRange": [
+      210,
+      216
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-20",
+    "text": "今天觀察光通訊族群是否同步轉強，",
+    "start": 45.9,
+    "end": 49.51,
+    "duration": 3.61,
+    "cleanCharCount": 15,
+    "scriptCharRange": [
+      217,
+      231
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-21",
+    "text": "以及鼎元的量能有沒有延續。",
+    "start": 49.51,
+    "end": 51.49,
+    "duration": 1.98,
+    "cleanCharCount": 12,
+    "scriptCharRange": [
+      232,
+      243
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-22",
+    "text": "若只剩題材、量能跟不上，",
+    "start": 51.49,
+    "end": 53.87,
+    "duration": 2.38,
+    "cleanCharCount": 10,
+    "scriptCharRange": [
+      244,
+      253
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-23",
+    "text": "就先不要追價。",
+    "start": 53.87,
+    "end": 55.13,
+    "duration": 1.26,
+    "cleanCharCount": 6,
+    "scriptCharRange": [
+      254,
+      259
+    ],
+    "reason": "terminal-punctuation"
+  },
+  {
+    "id": "CAP-24",
+    "text": "開啟籌碼K線，進「即時－多方」，",
+    "start": 55.13,
+    "end": 57.42,
+    "duration": 2.29,
+    "cleanCharCount": 12,
+    "scriptCharRange": [
+      260,
+      271
+    ],
+    "reason": "clause-boundary"
+  },
+  {
+    "id": "CAP-25",
+    "text": "查看主力動向，投資決策更有依據。",
+    "start": 57.42,
+    "end": 60.505,
+    "duration": 3.09,
+    "cleanCharCount": 14,
+    "scriptCharRange": [
+      272,
+      285
+    ],
+    "reason": "script-end"
+  }
+]
