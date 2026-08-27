@@ -16,16 +16,18 @@ V4c 是六個版本、四輪人工 audit 的結果；機器時間約 8 分鐘，
 | # | 階段 | 決定性 | 現況 |
 |---|---|---|---|
 | 1 | 講稿撰寫 | 人 | 規則在 `晨報腳本_ROLE.md`，全部是散文，靠人工 audit |
-| 2 | 講稿 lint | 程式（待寫） | **缺口**：字數／hook 位置／無 CTA／時間詞重複／小數點／價格點位都可機檢 |
+| 2 | 講稿 lint | 程式 | `lint-script.mjs`。字數／hook 位置／無 CTA／時間詞重複／小數點／價格點位；主動回報規格衝突 |
 | 3 | 主播影片生成 | 付費＋可能人工 | **見下方分岔**。V4c 走網頁 Studio，不是 API |
 | 4 | 加速（1.1×） | 程式 | `setpts`／`atempo` ＋ `-r 30`。必須守 fps gate |
 | 5 | ASR | 程式 | `whisper-cli -ml 1 -ojf` → `normalize-whispercpp.js` |
-| 6 | 強制對齊 | 程式 | `align-script-v4n.mjs`，Needleman-Wunsch，逐字時間 |
-| 7 | segment ledger | 程式＋人 | `build-segment-ledger-v4.mjs`。**anchor 與 responsibility 目前是手寫 9 格表** |
-| 8 | caption ledger | 程式 | `build-caption-ledger-v4.mjs`。語意停頓貼齊、短字幕合併、去尾標點、長字幕降字級 |
-| 9 | B-roll prompt | 人 | 兩階段契約：散文 200–300 字、5 行；生成只讀 `prompt.txt` |
+| 6 | 強制對齊 | 程式 | `align-script.mjs`，Needleman-Wunsch，逐字時間 |
+| 7 | segment plan | 程式＋人 | `plan-segments.mjs`。分句為切點單位，DP 求解合法分割；人只給 hint 與 responsibility |
+| 7b | segment ledger | 程式 | `build-segment-ledger.mjs`。吃 plan，用逐字時間算出實際切點 |
+| 8 | caption ledger | 程式 | `build-caption-ledger.mjs`。語意停頓貼齊、短字幕合併、去尾標點、長字幕降字級 |
+| 9 | MG 版型與資料 | 程式＋人 | `plan-mg.mjs` 挑版型、抽資料、產 composition；`mg-overrides.json` 覆寫文案 |
+| 9b | B-roll prompt | 人 | 兩階段契約：散文 200–300 字、5 行；生成只讀 `prompt.txt` |
 | 10 | MG 生成與 check | 程式 | `npx --yes hyperframes@0.8.3`，每格 0 error |
-| 11 | 主場景組裝 | 程式 | `build-main-v4.mjs` ＋ `comp-shell-916-v4.mjs` |
+| 11 | 主場景組裝 | 程式 | `build-main.mjs` ＋ `comp-shell-916.mjs` |
 | 12 | 定格 QA | 程式＋人 | `qa-frames.sh`。prompt 為真，畫面不符就重生成 |
 | 13 | 成片渲染 | 程式 | |
 
@@ -76,7 +78,7 @@ SHA-256；下游讀取時驗證，不符就爆掉並指名要重跑哪一階段�
 npm run gates -- --project <dir>
 ```
 
-跑 `contracts/acceptance.json` 的 16 道 gate，寫出 `gate-report.json`，有 failed 就 exit 1。
+跑 `contracts/acceptance.json` 的 28 道 gate，寫出 `gate-report.json`，有 failed 就 exit 1。
 
 三個原則：
 
@@ -112,3 +114,29 @@ npm run gates -- --project <dir>
    對坐姿主播用站姿 motion prompt。**根因是沿用未經重新驗證的前提。**
 3. **手寫 9 格表。** segment ledger 的 anchor 與 responsibility 是針對這一份講稿手寫的。
    換講稿就要重寫，且沒有機制保證仍然 P/M 交替。
+
+
+## 紅隊（2026-08-27）
+
+一個沒有本專案 context 的 agent 被要求「證明這組 gate 擋不住壞東西」，做出 18 個攻擊專案。
+當時最嚴重的一個是 **19 道全過、0 略過、exit 0** 的 `x12-grandslam`——而它是一支 300 秒、
+語速 0.77 字／秒、字幕 9 張每張停 33 秒、B-roll 四格全是同一張 90 bytes 的 1×1 黑 PNG、
+HeyGen payload 是 16:9 480p 且稿子是別支影片的爛片。
+
+**根因只有一個：所有量測都跑在自宣告的數字上，沒有一道 gate 回到內容本身。**
+
+修補後的原則：
+
+| 原則 | 具體 |
+|---|---|
+| 缺必要 artifact 是 failed，不是略過 | 必要清單在 `acceptance.json` 的 `requiredArtifacts`；`avatar/raw.mp4` 一旦存在，下游全部升級成必要 |
+| 講稿層不逐項對應 | `script.lint-clean` 看整份 lint 的 error 數。逐項對應必然漏——lint 加規則時不會有人記得同步加 gate |
+| 時間軸有不變量 | 段長為正、首尾相接、首格起點 0、`durationSec` 等於末格終點。沒有這些，覆蓋率可以用負數段長湊成任何值 |
+| 從內容量，不讀宣告 | 字幕字數從 `text` 量、片長用 `ffprobe` 量、`outputSha256` 必填且各格不得相同 |
+| 空集合不算通過 | 單段 ledger、0 個素材格、0 個切點、0/0 一律 failed |
+| 每個門檻都要有上下界 | 只有下界時「全片上圖、主播不露臉」會通過得比黃金基準漂亮 |
+| 層與層要交叉檢查 | `plan.matches-ledger` 逐格比對 id／form／anchor |
+| provenance 必要而非自願 | sidecar 必須存在且 `inputs` 必須宣告 `script.txt`。手寫 artifact 天生沒有 sidecar——那正是最可疑的一類 |
+
+`fixtures/attacks/` 收了 12 個攻擊專案當回歸測試，每一條斷言的不只是「有擋下」，
+還包括「是哪一道 gate 擋的」——否則某天換成另一個理由失敗，測試會繼續綠燈而漏洞已經回來了。

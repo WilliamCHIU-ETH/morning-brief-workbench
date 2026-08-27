@@ -1,0 +1,1850 @@
+[
+  {
+    "i": 0,
+    "ch": "早",
+    "origIdx": 1,
+    "breakAfter": false,
+    "start": 0,
+    "end": 1.299
+  },
+  {
+    "i": 1,
+    "ch": "安",
+    "origIdx": 2,
+    "breakAfter": true,
+    "start": 1.299,
+    "end": 2.597
+  },
+  {
+    "i": 2,
+    "ch": "各",
+    "origIdx": 4,
+    "breakAfter": false,
+    "start": 2.597,
+    "end": 3.896
+  },
+  {
+    "i": 3,
+    "ch": "位",
+    "origIdx": 5,
+    "breakAfter": false,
+    "start": 3.896,
+    "end": 5.195
+  },
+  {
+    "i": 4,
+    "ch": "親",
+    "origIdx": 6,
+    "breakAfter": false,
+    "start": 5.195,
+    "end": 6.494
+  },
+  {
+    "i": 5,
+    "ch": "愛",
+    "origIdx": 7,
+    "breakAfter": false,
+    "start": 6.494,
+    "end": 7.792
+  },
+  {
+    "i": 6,
+    "ch": "的",
+    "origIdx": 8,
+    "breakAfter": false,
+    "start": 7.792,
+    "end": 9.091
+  },
+  {
+    "i": 7,
+    "ch": "投",
+    "origIdx": 9,
+    "breakAfter": false,
+    "start": 9.091,
+    "end": 10.39
+  },
+  {
+    "i": 8,
+    "ch": "資",
+    "origIdx": 10,
+    "breakAfter": false,
+    "start": 10.39,
+    "end": 11.688
+  },
+  {
+    "i": 9,
+    "ch": "人",
+    "origIdx": 11,
+    "breakAfter": true,
+    "start": 11.688,
+    "end": 12.987
+  },
+  {
+    "i": 10,
+    "ch": "鼎",
+    "origIdx": 13,
+    "breakAfter": false,
+    "start": 12.987,
+    "end": 14.286
+  },
+  {
+    "i": 11,
+    "ch": "元",
+    "origIdx": 14,
+    "breakAfter": false,
+    "start": 14.286,
+    "end": 15.584
+  },
+  {
+    "i": 12,
+    "ch": "那",
+    "origIdx": 15,
+    "breakAfter": false,
+    "start": 15.584,
+    "end": 16.883
+  },
+  {
+    "i": 13,
+    "ch": "天",
+    "origIdx": 16,
+    "breakAfter": false,
+    "start": 16.883,
+    "end": 18.182
+  },
+  {
+    "i": 14,
+    "ch": "鎖",
+    "origIdx": 17,
+    "breakAfter": false,
+    "start": 18.182,
+    "end": 19.481
+  },
+  {
+    "i": 15,
+    "ch": "上",
+    "origIdx": 18,
+    "breakAfter": false,
+    "start": 19.481,
+    "end": 20.779
+  },
+  {
+    "i": 16,
+    "ch": "漲",
+    "origIdx": 19,
+    "breakAfter": false,
+    "start": 20.779,
+    "end": 22.078
+  },
+  {
+    "i": 17,
+    "ch": "停",
+    "origIdx": 20,
+    "breakAfter": false,
+    "start": 22.078,
+    "end": 23.377
+  },
+  {
+    "i": 18,
+    "ch": "7",
+    "origIdx": 21,
+    "breakAfter": false,
+    "start": 23.377,
+    "end": 24.675
+  },
+  {
+    "i": 19,
+    "ch": "4",
+    "origIdx": 22,
+    "breakAfter": false,
+    "start": 24.675,
+    "end": 25.974
+  },
+  {
+    "i": 20,
+    "ch": ".",
+    "origIdx": 23,
+    "breakAfter": false,
+    "start": 25.974,
+    "end": 27.273
+  },
+  {
+    "i": 21,
+    "ch": "8",
+    "origIdx": 24,
+    "breakAfter": false,
+    "start": 27.273,
+    "end": 28.571
+  },
+  {
+    "i": 22,
+    "ch": "元",
+    "origIdx": 25,
+    "breakAfter": true,
+    "start": 28.571,
+    "end": 29.87
+  },
+  {
+    "i": 23,
+    "ch": "今",
+    "origIdx": 27,
+    "breakAfter": false,
+    "start": 29.87,
+    "end": 31.169
+  },
+  {
+    "i": 24,
+    "ch": "天",
+    "origIdx": 28,
+    "breakAfter": false,
+    "start": 31.169,
+    "end": 32.468
+  },
+  {
+    "i": 25,
+    "ch": "還",
+    "origIdx": 29,
+    "breakAfter": false,
+    "start": 32.468,
+    "end": 33.766
+  },
+  {
+    "i": 26,
+    "ch": "能",
+    "origIdx": 30,
+    "breakAfter": false,
+    "start": 33.766,
+    "end": 35.065
+  },
+  {
+    "i": 27,
+    "ch": "追",
+    "origIdx": 31,
+    "breakAfter": false,
+    "start": 35.065,
+    "end": 36.364
+  },
+  {
+    "i": 28,
+    "ch": "嗎",
+    "origIdx": 32,
+    "breakAfter": true,
+    "start": 36.364,
+    "end": 37.662
+  },
+  {
+    "i": 29,
+    "ch": "值",
+    "origIdx": 35,
+    "breakAfter": false,
+    "start": 37.662,
+    "end": 38.961
+  },
+  {
+    "i": 30,
+    "ch": "得",
+    "origIdx": 36,
+    "breakAfter": false,
+    "start": 38.961,
+    "end": 40.26
+  },
+  {
+    "i": 31,
+    "ch": "注",
+    "origIdx": 37,
+    "breakAfter": false,
+    "start": 40.26,
+    "end": 41.558
+  },
+  {
+    "i": 32,
+    "ch": "意",
+    "origIdx": 38,
+    "breakAfter": false,
+    "start": 41.558,
+    "end": 42.857
+  },
+  {
+    "i": 33,
+    "ch": "的",
+    "origIdx": 39,
+    "breakAfter": false,
+    "start": 42.857,
+    "end": 44.156
+  },
+  {
+    "i": 34,
+    "ch": "是",
+    "origIdx": 40,
+    "breakAfter": true,
+    "start": 44.156,
+    "end": 45.455
+  },
+  {
+    "i": 35,
+    "ch": "那",
+    "origIdx": 42,
+    "breakAfter": false,
+    "start": 45.455,
+    "end": 46.753
+  },
+  {
+    "i": 36,
+    "ch": "天",
+    "origIdx": 43,
+    "breakAfter": false,
+    "start": 46.753,
+    "end": 48.052
+  },
+  {
+    "i": 37,
+    "ch": "台",
+    "origIdx": 44,
+    "breakAfter": false,
+    "start": 48.052,
+    "end": 49.351
+  },
+  {
+    "i": 38,
+    "ch": "股",
+    "origIdx": 45,
+    "breakAfter": false,
+    "start": 49.351,
+    "end": 50.649
+  },
+  {
+    "i": 39,
+    "ch": "只",
+    "origIdx": 46,
+    "breakAfter": false,
+    "start": 50.649,
+    "end": 51.948
+  },
+  {
+    "i": 40,
+    "ch": "漲",
+    "origIdx": 47,
+    "breakAfter": false,
+    "start": 51.948,
+    "end": 53.247
+  },
+  {
+    "i": 41,
+    "ch": "2",
+    "origIdx": 48,
+    "breakAfter": false,
+    "start": 53.247,
+    "end": 54.545
+  },
+  {
+    "i": 42,
+    "ch": "1",
+    "origIdx": 49,
+    "breakAfter": false,
+    "start": 54.545,
+    "end": 55.844
+  },
+  {
+    "i": 43,
+    "ch": "4",
+    "origIdx": 50,
+    "breakAfter": false,
+    "start": 55.844,
+    "end": 57.143
+  },
+  {
+    "i": 44,
+    "ch": "點",
+    "origIdx": 51,
+    "breakAfter": true,
+    "start": 57.143,
+    "end": 58.442
+  },
+  {
+    "i": 45,
+    "ch": "美",
+    "origIdx": 53,
+    "breakAfter": false,
+    "start": 58.442,
+    "end": 59.74
+  },
+  {
+    "i": 46,
+    "ch": "股",
+    "origIdx": 54,
+    "breakAfter": false,
+    "start": 59.74,
+    "end": 61.039
+  },
+  {
+    "i": 47,
+    "ch": "道",
+    "origIdx": 55,
+    "breakAfter": false,
+    "start": 61.039,
+    "end": 62.338
+  },
+  {
+    "i": 48,
+    "ch": "瓊",
+    "origIdx": 56,
+    "breakAfter": false,
+    "start": 62.338,
+    "end": 63.636
+  },
+  {
+    "i": 49,
+    "ch": "還",
+    "origIdx": 57,
+    "breakAfter": false,
+    "start": 63.636,
+    "end": 64.935
+  },
+  {
+    "i": 50,
+    "ch": "重",
+    "origIdx": 58,
+    "breakAfter": false,
+    "start": 64.935,
+    "end": 66.234
+  },
+  {
+    "i": 51,
+    "ch": "挫",
+    "origIdx": 59,
+    "breakAfter": false,
+    "start": 66.234,
+    "end": 67.532
+  },
+  {
+    "i": 52,
+    "ch": "7",
+    "origIdx": 60,
+    "breakAfter": false,
+    "start": 67.532,
+    "end": 68.831
+  },
+  {
+    "i": 53,
+    "ch": "0",
+    "origIdx": 61,
+    "breakAfter": false,
+    "start": 68.831,
+    "end": 70.13
+  },
+  {
+    "i": 54,
+    "ch": "3",
+    "origIdx": 62,
+    "breakAfter": false,
+    "start": 70.13,
+    "end": 71.429
+  },
+  {
+    "i": 55,
+    "ch": "點",
+    "origIdx": 63,
+    "breakAfter": false,
+    "start": 71.429,
+    "end": 72.727
+  },
+  {
+    "i": 56,
+    "ch": "—",
+    "origIdx": 64,
+    "breakAfter": false,
+    "start": 72.727,
+    "end": 74.026
+  },
+  {
+    "i": 57,
+    "ch": "—",
+    "origIdx": 65,
+    "breakAfter": false,
+    "start": 74.026,
+    "end": 75.325
+  },
+  {
+    "i": 58,
+    "ch": "錢",
+    "origIdx": 66,
+    "breakAfter": false,
+    "start": 75.325,
+    "end": 76.623
+  },
+  {
+    "i": 59,
+    "ch": "是",
+    "origIdx": 67,
+    "breakAfter": false,
+    "start": 76.623,
+    "end": 77.922
+  },
+  {
+    "i": 60,
+    "ch": "選",
+    "origIdx": 68,
+    "breakAfter": false,
+    "start": 77.922,
+    "end": 79.221
+  },
+  {
+    "i": 61,
+    "ch": "擇",
+    "origIdx": 69,
+    "breakAfter": false,
+    "start": 79.221,
+    "end": 80.519
+  },
+  {
+    "i": 62,
+    "ch": "性",
+    "origIdx": 70,
+    "breakAfter": false,
+    "start": 80.519,
+    "end": 81.818
+  },
+  {
+    "i": 63,
+    "ch": "地",
+    "origIdx": 71,
+    "breakAfter": false,
+    "start": 81.818,
+    "end": 83.117
+  },
+  {
+    "i": 64,
+    "ch": "進",
+    "origIdx": 72,
+    "breakAfter": false,
+    "start": 83.117,
+    "end": 84.416
+  },
+  {
+    "i": 65,
+    "ch": "去",
+    "origIdx": 73,
+    "breakAfter": false,
+    "start": 84.416,
+    "end": 85.714
+  },
+  {
+    "i": 66,
+    "ch": "的",
+    "origIdx": 74,
+    "breakAfter": true,
+    "start": 85.714,
+    "end": 87.013
+  },
+  {
+    "i": 67,
+    "ch": "市",
+    "origIdx": 77,
+    "breakAfter": false,
+    "start": 87.013,
+    "end": 88.312
+  },
+  {
+    "i": 68,
+    "ch": "場",
+    "origIdx": 78,
+    "breakAfter": false,
+    "start": 88.312,
+    "end": 89.61
+  },
+  {
+    "i": 69,
+    "ch": "買",
+    "origIdx": 79,
+    "breakAfter": false,
+    "start": 89.61,
+    "end": 90.909
+  },
+  {
+    "i": 70,
+    "ch": "的",
+    "origIdx": 80,
+    "breakAfter": false,
+    "start": 90.909,
+    "end": 92.208
+  },
+  {
+    "i": 71,
+    "ch": "是",
+    "origIdx": 81,
+    "breakAfter": false,
+    "start": 92.208,
+    "end": 93.506
+  },
+  {
+    "i": 72,
+    "ch": "光",
+    "origIdx": 82,
+    "breakAfter": false,
+    "start": 93.506,
+    "end": 94.805
+  },
+  {
+    "i": 73,
+    "ch": "通",
+    "origIdx": 83,
+    "breakAfter": false,
+    "start": 94.805,
+    "end": 96.104
+  },
+  {
+    "i": 74,
+    "ch": "訊",
+    "origIdx": 84,
+    "breakAfter": false,
+    "start": 96.104,
+    "end": 97.403
+  },
+  {
+    "i": 75,
+    "ch": "放",
+    "origIdx": 85,
+    "breakAfter": false,
+    "start": 97.403,
+    "end": 98.701
+  },
+  {
+    "i": 76,
+    "ch": "量",
+    "origIdx": 86,
+    "breakAfter": true,
+    "start": 98.701,
+    "end": 100
+  },
+  {
+    "i": 77,
+    "ch": "近",
+    "origIdx": 88,
+    "breakAfter": false,
+    "start": 100,
+    "end": 101.299
+  },
+  {
+    "i": 78,
+    "ch": "日",
+    "origIdx": 89,
+    "breakAfter": false,
+    "start": 101.299,
+    "end": 102.597
+  },
+  {
+    "i": 79,
+    "ch": "A",
+    "origIdx": 90,
+    "breakAfter": false,
+    "start": 102.597,
+    "end": 103.896
+  },
+  {
+    "i": 80,
+    "ch": "I",
+    "origIdx": 91,
+    "breakAfter": false,
+    "start": 103.896,
+    "end": 105.195
+  },
+  {
+    "i": 81,
+    "ch": "資",
+    "origIdx": 92,
+    "breakAfter": false,
+    "start": 105.195,
+    "end": 106.494
+  },
+  {
+    "i": 82,
+    "ch": "料",
+    "origIdx": 93,
+    "breakAfter": false,
+    "start": 106.494,
+    "end": 107.792
+  },
+  {
+    "i": 83,
+    "ch": "中",
+    "origIdx": 94,
+    "breakAfter": false,
+    "start": 107.792,
+    "end": 109.091
+  },
+  {
+    "i": 84,
+    "ch": "心",
+    "origIdx": 95,
+    "breakAfter": false,
+    "start": 109.091,
+    "end": 110.39
+  },
+  {
+    "i": 85,
+    "ch": "與",
+    "origIdx": 96,
+    "breakAfter": false,
+    "start": 110.39,
+    "end": 111.688
+  },
+  {
+    "i": 86,
+    "ch": "C",
+    "origIdx": 97,
+    "breakAfter": false,
+    "start": 111.688,
+    "end": 112.987
+  },
+  {
+    "i": 87,
+    "ch": "P",
+    "origIdx": 98,
+    "breakAfter": false,
+    "start": 112.987,
+    "end": 114.286
+  },
+  {
+    "i": 88,
+    "ch": "O",
+    "origIdx": 99,
+    "breakAfter": false,
+    "start": 114.286,
+    "end": 115.584
+  },
+  {
+    "i": 89,
+    "ch": "需",
+    "origIdx": 100,
+    "breakAfter": false,
+    "start": 115.584,
+    "end": 116.883
+  },
+  {
+    "i": 90,
+    "ch": "求",
+    "origIdx": 101,
+    "breakAfter": false,
+    "start": 116.883,
+    "end": 118.182
+  },
+  {
+    "i": 91,
+    "ch": "升",
+    "origIdx": 102,
+    "breakAfter": false,
+    "start": 118.182,
+    "end": 119.481
+  },
+  {
+    "i": 92,
+    "ch": "溫",
+    "origIdx": 103,
+    "breakAfter": true,
+    "start": 119.481,
+    "end": 120.779
+  },
+  {
+    "i": 93,
+    "ch": "鼎",
+    "origIdx": 105,
+    "breakAfter": false,
+    "start": 120.779,
+    "end": 122.078
+  },
+  {
+    "i": 94,
+    "ch": "元",
+    "origIdx": 106,
+    "breakAfter": false,
+    "start": 122.078,
+    "end": 123.377
+  },
+  {
+    "i": 95,
+    "ch": "的",
+    "origIdx": 107,
+    "breakAfter": false,
+    "start": 123.377,
+    "end": 124.675
+  },
+  {
+    "i": 96,
+    "ch": "光",
+    "origIdx": 108,
+    "breakAfter": false,
+    "start": 124.675,
+    "end": 125.974
+  },
+  {
+    "i": 97,
+    "ch": "通",
+    "origIdx": 109,
+    "breakAfter": false,
+    "start": 125.974,
+    "end": 127.273
+  },
+  {
+    "i": 98,
+    "ch": "訊",
+    "origIdx": 110,
+    "breakAfter": false,
+    "start": 127.273,
+    "end": 128.571
+  },
+  {
+    "i": 99,
+    "ch": "產",
+    "origIdx": 111,
+    "breakAfter": false,
+    "start": 128.571,
+    "end": 129.87
+  },
+  {
+    "i": 100,
+    "ch": "品",
+    "origIdx": 112,
+    "breakAfter": false,
+    "start": 129.87,
+    "end": 131.169
+  },
+  {
+    "i": 101,
+    "ch": "下",
+    "origIdx": 113,
+    "breakAfter": false,
+    "start": 131.169,
+    "end": 132.468
+  },
+  {
+    "i": 102,
+    "ch": "半",
+    "origIdx": 114,
+    "breakAfter": false,
+    "start": 132.468,
+    "end": 133.766
+  },
+  {
+    "i": 103,
+    "ch": "年",
+    "origIdx": 115,
+    "breakAfter": false,
+    "start": 133.766,
+    "end": 135.065
+  },
+  {
+    "i": 104,
+    "ch": "一",
+    "origIdx": 116,
+    "breakAfter": false,
+    "start": 135.065,
+    "end": 136.364
+  },
+  {
+    "i": 105,
+    "ch": "定",
+    "origIdx": 117,
+    "breakAfter": false,
+    "start": 136.364,
+    "end": 137.662
+  },
+  {
+    "i": 106,
+    "ch": "會",
+    "origIdx": 118,
+    "breakAfter": false,
+    "start": 137.662,
+    "end": 138.961
+  },
+  {
+    "i": 107,
+    "ch": "漲",
+    "origIdx": 119,
+    "breakAfter": true,
+    "start": 138.961,
+    "end": 140.26
+  },
+  {
+    "i": 108,
+    "ch": "這",
+    "origIdx": 122,
+    "breakAfter": false,
+    "start": 140.26,
+    "end": 141.558
+  },
+  {
+    "i": 109,
+    "ch": "種",
+    "origIdx": 123,
+    "breakAfter": false,
+    "start": 141.558,
+    "end": 142.857
+  },
+  {
+    "i": 110,
+    "ch": "轉",
+    "origIdx": 124,
+    "breakAfter": false,
+    "start": 142.857,
+    "end": 144.156
+  },
+  {
+    "i": 111,
+    "ch": "單",
+    "origIdx": 125,
+    "breakAfter": false,
+    "start": 144.156,
+    "end": 145.455
+  },
+  {
+    "i": 112,
+    "ch": "對",
+    "origIdx": 126,
+    "breakAfter": false,
+    "start": 145.455,
+    "end": 146.753
+  },
+  {
+    "i": 113,
+    "ch": "整",
+    "origIdx": 127,
+    "breakAfter": false,
+    "start": 146.753,
+    "end": 148.052
+  },
+  {
+    "i": 114,
+    "ch": "個",
+    "origIdx": 128,
+    "breakAfter": false,
+    "start": 148.052,
+    "end": 149.351
+  },
+  {
+    "i": 115,
+    "ch": "族",
+    "origIdx": 129,
+    "breakAfter": false,
+    "start": 149.351,
+    "end": 150.649
+  },
+  {
+    "i": 116,
+    "ch": "群",
+    "origIdx": 130,
+    "breakAfter": false,
+    "start": 150.649,
+    "end": 151.948
+  },
+  {
+    "i": 117,
+    "ch": "有",
+    "origIdx": 131,
+    "breakAfter": false,
+    "start": 151.948,
+    "end": 153.247
+  },
+  {
+    "i": 118,
+    "ch": "深",
+    "origIdx": 132,
+    "breakAfter": false,
+    "start": 153.247,
+    "end": 154.545
+  },
+  {
+    "i": 119,
+    "ch": "遠",
+    "origIdx": 133,
+    "breakAfter": false,
+    "start": 154.545,
+    "end": 155.844
+  },
+  {
+    "i": 120,
+    "ch": "影",
+    "origIdx": 134,
+    "breakAfter": false,
+    "start": 155.844,
+    "end": 157.143
+  },
+  {
+    "i": 121,
+    "ch": "響",
+    "origIdx": 135,
+    "breakAfter": true,
+    "start": 157.143,
+    "end": 158.442
+  },
+  {
+    "i": 122,
+    "ch": "公",
+    "origIdx": 137,
+    "breakAfter": false,
+    "start": 158.442,
+    "end": 159.74
+  },
+  {
+    "i": 123,
+    "ch": "司",
+    "origIdx": 138,
+    "breakAfter": false,
+    "start": 159.74,
+    "end": 161.039
+  },
+  {
+    "i": 124,
+    "ch": "規",
+    "origIdx": 139,
+    "breakAfter": false,
+    "start": 161.039,
+    "end": 162.338
+  },
+  {
+    "i": 125,
+    "ch": "劃",
+    "origIdx": 140,
+    "breakAfter": false,
+    "start": 162.338,
+    "end": 163.636
+  },
+  {
+    "i": 126,
+    "ch": "投",
+    "origIdx": 141,
+    "breakAfter": false,
+    "start": 163.636,
+    "end": 164.935
+  },
+  {
+    "i": 127,
+    "ch": "入",
+    "origIdx": 142,
+    "breakAfter": false,
+    "start": 164.935,
+    "end": 166.234
+  },
+  {
+    "i": 128,
+    "ch": "1",
+    "origIdx": 143,
+    "breakAfter": false,
+    "start": 166.234,
+    "end": 167.532
+  },
+  {
+    "i": 129,
+    "ch": "2",
+    "origIdx": 144,
+    "breakAfter": false,
+    "start": 167.532,
+    "end": 168.831
+  },
+  {
+    "i": 130,
+    "ch": "億",
+    "origIdx": 145,
+    "breakAfter": false,
+    "start": 168.831,
+    "end": 170.13
+  },
+  {
+    "i": 131,
+    "ch": "元",
+    "origIdx": 146,
+    "breakAfter": false,
+    "start": 170.13,
+    "end": 171.429
+  },
+  {
+    "i": 132,
+    "ch": "擴",
+    "origIdx": 147,
+    "breakAfter": false,
+    "start": 171.429,
+    "end": 172.727
+  },
+  {
+    "i": 133,
+    "ch": "產",
+    "origIdx": 148,
+    "breakAfter": true,
+    "start": 172.727,
+    "end": 174.026
+  },
+  {
+    "i": 134,
+    "ch": "先",
+    "origIdx": 150,
+    "breakAfter": false,
+    "start": 174.026,
+    "end": 175.325
+  },
+  {
+    "i": 135,
+    "ch": "前",
+    "origIdx": 151,
+    "breakAfter": false,
+    "start": 175.325,
+    "end": 176.623
+  },
+  {
+    "i": 136,
+    "ch": "的",
+    "origIdx": 152,
+    "breakAfter": false,
+    "start": 176.623,
+    "end": 177.922
+  },
+  {
+    "i": 137,
+    "ch": "訂",
+    "origIdx": 153,
+    "breakAfter": false,
+    "start": 177.922,
+    "end": 179.221
+  },
+  {
+    "i": 138,
+    "ch": "單",
+    "origIdx": 154,
+    "breakAfter": false,
+    "start": 179.221,
+    "end": 180.519
+  },
+  {
+    "i": 139,
+    "ch": "也",
+    "origIdx": 155,
+    "breakAfter": false,
+    "start": 180.519,
+    "end": 181.818
+  },
+  {
+    "i": 140,
+    "ch": "確",
+    "origIdx": 156,
+    "breakAfter": false,
+    "start": 181.818,
+    "end": 183.117
+  },
+  {
+    "i": 141,
+    "ch": "定",
+    "origIdx": 157,
+    "breakAfter": false,
+    "start": 183.117,
+    "end": 184.416
+  },
+  {
+    "i": 142,
+    "ch": "受",
+    "origIdx": 158,
+    "breakAfter": false,
+    "start": 184.416,
+    "end": 185.714
+  },
+  {
+    "i": 143,
+    "ch": "惠",
+    "origIdx": 159,
+    "breakAfter": true,
+    "start": 185.714,
+    "end": 187.013
+  },
+  {
+    "i": 144,
+    "ch": "所",
+    "origIdx": 162,
+    "breakAfter": false,
+    "start": 187.013,
+    "end": 188.312
+  },
+  {
+    "i": 145,
+    "ch": "以",
+    "origIdx": 163,
+    "breakAfter": false,
+    "start": 188.312,
+    "end": 189.61
+  },
+  {
+    "i": 146,
+    "ch": "只",
+    "origIdx": 164,
+    "breakAfter": false,
+    "start": 189.61,
+    "end": 190.909
+  },
+  {
+    "i": 147,
+    "ch": "要",
+    "origIdx": 165,
+    "breakAfter": false,
+    "start": 190.909,
+    "end": 192.208
+  },
+  {
+    "i": 148,
+    "ch": "跌",
+    "origIdx": 166,
+    "breakAfter": false,
+    "start": 192.208,
+    "end": 193.506
+  },
+  {
+    "i": 149,
+    "ch": "破",
+    "origIdx": 167,
+    "breakAfter": false,
+    "start": 193.506,
+    "end": 194.805
+  },
+  {
+    "i": 150,
+    "ch": "7",
+    "origIdx": 168,
+    "breakAfter": false,
+    "start": 194.805,
+    "end": 196.104
+  },
+  {
+    "i": 151,
+    "ch": "0",
+    "origIdx": 169,
+    "breakAfter": false,
+    "start": 196.104,
+    "end": 197.403
+  },
+  {
+    "i": 152,
+    "ch": "元",
+    "origIdx": 170,
+    "breakAfter": false,
+    "start": 197.403,
+    "end": 198.701
+  },
+  {
+    "i": 153,
+    "ch": "就",
+    "origIdx": 171,
+    "breakAfter": false,
+    "start": 198.701,
+    "end": 200
+  },
+  {
+    "i": 154,
+    "ch": "先",
+    "origIdx": 172,
+    "breakAfter": false,
+    "start": 200,
+    "end": 201.299
+  },
+  {
+    "i": 155,
+    "ch": "出",
+    "origIdx": 173,
+    "breakAfter": true,
+    "start": 201.299,
+    "end": 202.597
+  },
+  {
+    "i": 156,
+    "ch": "站",
+    "origIdx": 175,
+    "breakAfter": false,
+    "start": 202.597,
+    "end": 203.896
+  },
+  {
+    "i": 157,
+    "ch": "上",
+    "origIdx": 176,
+    "breakAfter": false,
+    "start": 203.896,
+    "end": 205.195
+  },
+  {
+    "i": 158,
+    "ch": "8",
+    "origIdx": 177,
+    "breakAfter": false,
+    "start": 205.195,
+    "end": 206.494
+  },
+  {
+    "i": 159,
+    "ch": "0",
+    "origIdx": 178,
+    "breakAfter": false,
+    "start": 206.494,
+    "end": 207.792
+  },
+  {
+    "i": 160,
+    "ch": "元",
+    "origIdx": 179,
+    "breakAfter": false,
+    "start": 207.792,
+    "end": 209.091
+  },
+  {
+    "i": 161,
+    "ch": "再",
+    "origIdx": 180,
+    "breakAfter": false,
+    "start": 209.091,
+    "end": 210.39
+  },
+  {
+    "i": 162,
+    "ch": "回",
+    "origIdx": 181,
+    "breakAfter": false,
+    "start": 210.39,
+    "end": 211.688
+  },
+  {
+    "i": 163,
+    "ch": "頭",
+    "origIdx": 182,
+    "breakAfter": false,
+    "start": 211.688,
+    "end": 212.987
+  },
+  {
+    "i": 164,
+    "ch": "加",
+    "origIdx": 183,
+    "breakAfter": false,
+    "start": 212.987,
+    "end": 214.286
+  },
+  {
+    "i": 165,
+    "ch": "碼",
+    "origIdx": 184,
+    "breakAfter": true,
+    "start": 214.286,
+    "end": 215.584
+  },
+  {
+    "i": 166,
+    "ch": "總",
+    "origIdx": 186,
+    "breakAfter": false,
+    "start": 215.584,
+    "end": 216.883
+  },
+  {
+    "i": 167,
+    "ch": "而",
+    "origIdx": 187,
+    "breakAfter": false,
+    "start": 216.883,
+    "end": 218.182
+  },
+  {
+    "i": 168,
+    "ch": "言",
+    "origIdx": 188,
+    "breakAfter": false,
+    "start": 218.182,
+    "end": 219.481
+  },
+  {
+    "i": 169,
+    "ch": "之",
+    "origIdx": 189,
+    "breakAfter": true,
+    "start": 219.481,
+    "end": 220.779
+  },
+  {
+    "i": 170,
+    "ch": "題",
+    "origIdx": 191,
+    "breakAfter": false,
+    "start": 220.779,
+    "end": 222.078
+  },
+  {
+    "i": 171,
+    "ch": "材",
+    "origIdx": 192,
+    "breakAfter": false,
+    "start": 222.078,
+    "end": 223.377
+  },
+  {
+    "i": 172,
+    "ch": "還",
+    "origIdx": 193,
+    "breakAfter": false,
+    "start": 223.377,
+    "end": 224.675
+  },
+  {
+    "i": 173,
+    "ch": "在",
+    "origIdx": 194,
+    "breakAfter": true,
+    "start": 224.675,
+    "end": 225.974
+  },
+  {
+    "i": 174,
+    "ch": "投",
+    "origIdx": 196,
+    "breakAfter": false,
+    "start": 225.974,
+    "end": 227.273
+  },
+  {
+    "i": 175,
+    "ch": "資",
+    "origIdx": 197,
+    "breakAfter": false,
+    "start": 227.273,
+    "end": 228.571
+  },
+  {
+    "i": 176,
+    "ch": "人",
+    "origIdx": 198,
+    "breakAfter": false,
+    "start": 228.571,
+    "end": 229.87
+  },
+  {
+    "i": 177,
+    "ch": "要",
+    "origIdx": 199,
+    "breakAfter": false,
+    "start": 229.87,
+    "end": 231.169
+  },
+  {
+    "i": 178,
+    "ch": "留",
+    "origIdx": 200,
+    "breakAfter": false,
+    "start": 231.169,
+    "end": 232.468
+  },
+  {
+    "i": 179,
+    "ch": "意",
+    "origIdx": 201,
+    "breakAfter": true,
+    "start": 232.468,
+    "end": 233.766
+  },
+  {
+    "i": 180,
+    "ch": "想",
+    "origIdx": 204,
+    "breakAfter": false,
+    "start": 233.766,
+    "end": 235.065
+  },
+  {
+    "i": 181,
+    "ch": "知",
+    "origIdx": 205,
+    "breakAfter": false,
+    "start": 235.065,
+    "end": 236.364
+  },
+  {
+    "i": 182,
+    "ch": "道",
+    "origIdx": 206,
+    "breakAfter": false,
+    "start": 236.364,
+    "end": 237.662
+  },
+  {
+    "i": 183,
+    "ch": "主",
+    "origIdx": 207,
+    "breakAfter": false,
+    "start": 237.662,
+    "end": 238.961
+  },
+  {
+    "i": 184,
+    "ch": "力",
+    "origIdx": 208,
+    "breakAfter": false,
+    "start": 238.961,
+    "end": 240.26
+  },
+  {
+    "i": 185,
+    "ch": "有",
+    "origIdx": 209,
+    "breakAfter": false,
+    "start": 240.26,
+    "end": 241.558
+  },
+  {
+    "i": 186,
+    "ch": "沒",
+    "origIdx": 210,
+    "breakAfter": false,
+    "start": 241.558,
+    "end": 242.857
+  },
+  {
+    "i": 187,
+    "ch": "有",
+    "origIdx": 211,
+    "breakAfter": false,
+    "start": 242.857,
+    "end": 244.156
+  },
+  {
+    "i": 188,
+    "ch": "在",
+    "origIdx": 212,
+    "breakAfter": false,
+    "start": 244.156,
+    "end": 245.455
+  },
+  {
+    "i": 189,
+    "ch": "買",
+    "origIdx": 213,
+    "breakAfter": true,
+    "start": 245.455,
+    "end": 246.753
+  },
+  {
+    "i": 190,
+    "ch": "打",
+    "origIdx": 215,
+    "breakAfter": false,
+    "start": 246.753,
+    "end": 248.052
+  },
+  {
+    "i": 191,
+    "ch": "開",
+    "origIdx": 216,
+    "breakAfter": false,
+    "start": 248.052,
+    "end": 249.351
+  },
+  {
+    "i": 192,
+    "ch": "A",
+    "origIdx": 218,
+    "breakAfter": false,
+    "start": 249.351,
+    "end": 250.649
+  },
+  {
+    "i": 193,
+    "ch": "p",
+    "origIdx": 219,
+    "breakAfter": false,
+    "start": 250.649,
+    "end": 251.948
+  },
+  {
+    "i": 194,
+    "ch": "p",
+    "origIdx": 220,
+    "breakAfter": true,
+    "start": 251.948,
+    "end": 253.247
+  },
+  {
+    "i": 195,
+    "ch": "到",
+    "origIdx": 222,
+    "breakAfter": false,
+    "start": 253.247,
+    "end": 254.545
+  },
+  {
+    "i": 196,
+    "ch": "主",
+    "origIdx": 223,
+    "breakAfter": false,
+    "start": 254.545,
+    "end": 255.844
+  },
+  {
+    "i": 197,
+    "ch": "力",
+    "origIdx": 224,
+    "breakAfter": false,
+    "start": 255.844,
+    "end": 257.143
+  },
+  {
+    "i": 198,
+    "ch": "買",
+    "origIdx": 225,
+    "breakAfter": false,
+    "start": 257.143,
+    "end": 258.442
+  },
+  {
+    "i": 199,
+    "ch": "賣",
+    "origIdx": 226,
+    "breakAfter": false,
+    "start": 258.442,
+    "end": 259.74
+  },
+  {
+    "i": 200,
+    "ch": "超",
+    "origIdx": 227,
+    "breakAfter": false,
+    "start": 259.74,
+    "end": 261.039
+  },
+  {
+    "i": 201,
+    "ch": "那",
+    "origIdx": 228,
+    "breakAfter": false,
+    "start": 261.039,
+    "end": 262.338
+  },
+  {
+    "i": 202,
+    "ch": "一",
+    "origIdx": 229,
+    "breakAfter": false,
+    "start": 262.338,
+    "end": 263.636
+  },
+  {
+    "i": 203,
+    "ch": "頁",
+    "origIdx": 230,
+    "breakAfter": true,
+    "start": 263.636,
+    "end": 264.935
+  },
+  {
+    "i": 204,
+    "ch": "把",
+    "origIdx": 232,
+    "breakAfter": false,
+    "start": 264.935,
+    "end": 266.234
+  },
+  {
+    "i": 205,
+    "ch": "那",
+    "origIdx": 233,
+    "breakAfter": false,
+    "start": 266.234,
+    "end": 267.532
+  },
+  {
+    "i": 206,
+    "ch": "天",
+    "origIdx": 234,
+    "breakAfter": false,
+    "start": 267.532,
+    "end": 268.831
+  },
+  {
+    "i": 207,
+    "ch": "的",
+    "origIdx": 235,
+    "breakAfter": false,
+    "start": 268.831,
+    "end": 270.13
+  },
+  {
+    "i": 208,
+    "ch": "籌",
+    "origIdx": 236,
+    "breakAfter": false,
+    "start": 270.13,
+    "end": 271.429
+  },
+  {
+    "i": 209,
+    "ch": "碼",
+    "origIdx": 237,
+    "breakAfter": false,
+    "start": 271.429,
+    "end": 272.727
+  },
+  {
+    "i": 210,
+    "ch": "看",
+    "origIdx": 238,
+    "breakAfter": false,
+    "start": 272.727,
+    "end": 274.026
+  },
+  {
+    "i": 211,
+    "ch": "清",
+    "origIdx": 239,
+    "breakAfter": false,
+    "start": 274.026,
+    "end": 275.325
+  },
+  {
+    "i": 212,
+    "ch": "楚",
+    "origIdx": 240,
+    "breakAfter": true,
+    "start": 275.325,
+    "end": 276.623
+  },
+  {
+    "i": 213,
+    "ch": "更",
+    "origIdx": 242,
+    "breakAfter": false,
+    "start": 276.623,
+    "end": 277.922
+  },
+  {
+    "i": 214,
+    "ch": "多",
+    "origIdx": 243,
+    "breakAfter": false,
+    "start": 277.922,
+    "end": 279.221
+  },
+  {
+    "i": 215,
+    "ch": "資",
+    "origIdx": 244,
+    "breakAfter": false,
+    "start": 279.221,
+    "end": 280.519
+  },
+  {
+    "i": 216,
+    "ch": "料",
+    "origIdx": 245,
+    "breakAfter": false,
+    "start": 280.519,
+    "end": 281.818
+  },
+  {
+    "i": 217,
+    "ch": "在",
+    "origIdx": 246,
+    "breakAfter": false,
+    "start": 281.818,
+    "end": 283.117
+  },
+  {
+    "i": 218,
+    "ch": "w",
+    "origIdx": 248,
+    "breakAfter": false,
+    "start": 283.117,
+    "end": 284.416
+  },
+  {
+    "i": 219,
+    "ch": "w",
+    "origIdx": 249,
+    "breakAfter": false,
+    "start": 284.416,
+    "end": 285.714
+  },
+  {
+    "i": 220,
+    "ch": "w",
+    "origIdx": 250,
+    "breakAfter": false,
+    "start": 285.714,
+    "end": 287.013
+  },
+  {
+    "i": 221,
+    "ch": ".",
+    "origIdx": 251,
+    "breakAfter": false,
+    "start": 287.013,
+    "end": 288.312
+  },
+  {
+    "i": 222,
+    "ch": "c",
+    "origIdx": 252,
+    "breakAfter": false,
+    "start": 288.312,
+    "end": 289.61
+  },
+  {
+    "i": 223,
+    "ch": "m",
+    "origIdx": 253,
+    "breakAfter": false,
+    "start": 289.61,
+    "end": 290.909
+  },
+  {
+    "i": 224,
+    "ch": "o",
+    "origIdx": 254,
+    "breakAfter": false,
+    "start": 290.909,
+    "end": 292.208
+  },
+  {
+    "i": 225,
+    "ch": "n",
+    "origIdx": 255,
+    "breakAfter": false,
+    "start": 292.208,
+    "end": 293.506
+  },
+  {
+    "i": 226,
+    "ch": "e",
+    "origIdx": 256,
+    "breakAfter": false,
+    "start": 293.506,
+    "end": 294.805
+  },
+  {
+    "i": 227,
+    "ch": "y",
+    "origIdx": 257,
+    "breakAfter": false,
+    "start": 294.805,
+    "end": 296.104
+  },
+  {
+    "i": 228,
+    "ch": ".",
+    "origIdx": 258,
+    "breakAfter": false,
+    "start": 296.104,
+    "end": 297.403
+  },
+  {
+    "i": 229,
+    "ch": "t",
+    "origIdx": 259,
+    "breakAfter": false,
+    "start": 297.403,
+    "end": 298.701
+  },
+  {
+    "i": 230,
+    "ch": "w",
+    "origIdx": 260,
+    "breakAfter": true,
+    "start": 298.701,
+    "end": 300
+  }
+]

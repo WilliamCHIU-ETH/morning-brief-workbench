@@ -1,0 +1,69 @@
+{
+  "durationSec": 300,
+  "visualForm": "fullframe",
+  "segments": [
+    {
+      "id": "01",
+      "form": "presenter",
+      "startSec": 0,
+      "endSec": 55,
+      "durationSec": 55
+    },
+    {
+      "id": "02",
+      "form": "mg",
+      "startSec": 55,
+      "endSec": 61.49,
+      "durationSec": 6.49
+    },
+    {
+      "id": "03",
+      "form": "presenter",
+      "startSec": 61.49,
+      "endSec": 116.49,
+      "durationSec": 55
+    },
+    {
+      "id": "04",
+      "form": "mg",
+      "startSec": 116.49,
+      "endSec": 122.98,
+      "durationSec": 6.49
+    },
+    {
+      "id": "05",
+      "form": "presenter",
+      "startSec": 122.98,
+      "endSec": 177.98,
+      "durationSec": 55
+    },
+    {
+      "id": "07",
+      "form": "mg",
+      "startSec": 184.47,
+      "endSec": 190.96,
+      "durationSec": 6.49
+    },
+    {
+      "id": "06",
+      "form": "presenter",
+      "startSec": 177.98,
+      "endSec": 184.47,
+      "durationSec": 6.49
+    },
+    {
+      "id": "08",
+      "form": "mg",
+      "startSec": 190.96,
+      "endSec": 197.45,
+      "durationSec": 6.49
+    },
+    {
+      "id": "09",
+      "form": "presenter",
+      "startSec": 197.45,
+      "endSec": 300,
+      "durationSec": 102.55
+    }
+  ]
+}

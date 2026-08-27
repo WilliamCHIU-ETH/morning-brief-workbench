@@ -1,0 +1,16 @@
+{
+  "type": "video",
+  "engine": {
+    "type": "talking_photo"
+  },
+  "aspect_ratio": "16:9",
+  "resolution": "480p",
+  "avatar_id": "00000000000000000000000000000000",
+  "voice_id": "ffffffffffffffffffffffffffffffff",
+  "input_text": "（上一支台積電影片的舊講稿，與本片 script.txt 無關）",
+  "motion_prompt": "Seated with hands resting on the desk, barely move.",
+  "expressiveness": "low",
+  "voice_settings": {
+    "speed": 1.1
+  }
+}

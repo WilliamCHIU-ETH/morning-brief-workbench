@@ -43,7 +43,18 @@ export function resolveProject(argv = process.argv.slice(2)) {
   if (!raw) throw new Error('缺少 --project <dir>（或環境變數 MB_PROJECT）');
   const root = path.resolve(raw);
   if (!fs.existsSync(root)) throw new Error(`project 目錄不存在：${root}`);
-  const suffixed = fs.readdirSync(root).filter((f) => SUFFIX_RE.test(f));
+  // 遞迴掃描。原本只掃根目錄一層，把 segment-ledger.v1.json 放進子目錄就不擋，
+  // 而「comp-shell 靜默讀到 V1 的 12 格表」那個原始事故只要舊檔在子目錄就會重演。
+  const suffixed = [];
+  const walk = (dir, rel = '') => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) walk(path.join(dir, e.name), r);
+      else if (SUFFIX_RE.test(e.name)) suffixed.push(r);
+    }
+  };
+  walk(root);
   if (suffixed.length) {
     throw new Error(
       `project 目錄裡有帶版本後綴的檔案，違反「版本用目錄分」：\n  ${suffixed.join('\n  ')}\n` +

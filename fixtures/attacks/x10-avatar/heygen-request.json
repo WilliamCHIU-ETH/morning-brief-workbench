@@ -1,0 +1,12 @@
+{
+  "type": "video",
+  "engine": { "type": "talking_photo" },
+  "aspect_ratio": "16:9",
+  "resolution": "480p",
+  "avatar_id": "00000000000000000000000000000000",
+  "voice_id": "ffffffffffffffffffffffffffffffff",
+  "input_text": "本片講稿與 script.txt 完全無關。這是上一支影片的舊講稿，講的是台積電。",
+  "motion_prompt": "Seated with hands resting on the desk, barely move.",
+  "expressiveness": "low",
+  "voice_settings": { "speed": 1.1 }
+}

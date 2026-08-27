@@ -1,0 +1,65 @@
+[
+  {
+    "id": "CAP-01",
+    "text": "字幕",
+    "start": 0,
+    "end": 6.915,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-02",
+    "text": "字幕",
+    "start": 6.915,
+    "end": 12.915,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-03",
+    "text": "字幕",
+    "start": 12.915,
+    "end": 16.415,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-04",
+    "text": "字幕",
+    "start": 16.415,
+    "end": 22.415,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-05",
+    "text": "字幕",
+    "start": 22.415,
+    "end": 25.915,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-06",
+    "text": "字幕",
+    "start": 25.915,
+    "end": 31.915,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-07",
+    "text": "字幕",
+    "start": 31.915,
+    "end": 35.415,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-08",
+    "text": "字幕",
+    "start": 35.415,
+    "end": 41.415,
+    "cleanCharCount": 28
+  },
+  {
+    "id": "CAP-09",
+    "text": "字幕",
+    "start": 41.415,
+    "end": 48.6,
+    "cleanCharCount": 29
+  }
+]

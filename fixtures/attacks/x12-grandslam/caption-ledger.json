@@ -1,0 +1,74 @@
+[
+  {
+    "id": "CAP-01",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 0,
+    "end": 55,
+    "duration": 55,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-02",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 55,
+    "end": 61.49,
+    "duration": 6.49,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-03",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 61.49,
+    "end": 116.49,
+    "duration": 55,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-04",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 116.49,
+    "end": 122.98,
+    "duration": 6.49,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-05",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 122.98,
+    "end": 177.98,
+    "duration": 55,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-06",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 177.98,
+    "end": 184.47,
+    "duration": 6.49,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-07",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 184.47,
+    "end": 190.96,
+    "duration": 6.49,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-08",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 190.96,
+    "end": 197.45,
+    "duration": 6.49,
+    "cleanCharCount": 25
+  },
+  {
+    "id": "CAP-09",
+    "text": "這一張字幕停了整整一分鐘，而且句尾有句號。 ",
+    "start": 197.45,
+    "end": 300,
+    "duration": 102.55,
+    "cleanCharCount": 31
+  }
+]

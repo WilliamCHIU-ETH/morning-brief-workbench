@@ -1,0 +1,89 @@
+{
+  "durationSec": 48.6,
+  "visualForm": "fullframe",
+  "coverage": {
+    "mgSec": 21.4,
+    "presenterSec": 27.2,
+    "materialPct": 44,
+    "presenterPct": 56
+  },
+  "segments": [
+    {
+      "id": "01",
+      "form": "presenter",
+      "startSec": 0,
+      "endSec": 5.47,
+      "durationSec": 5.47
+    },
+    {
+      "id": "02",
+      "form": "mg",
+      "startSec": 5.47,
+      "endSec": 11.96,
+      "durationSec": 6.49
+    },
+    {
+      "id": "03",
+      "form": "presenter",
+      "startSec": 11.96,
+      "endSec": 14.98,
+      "durationSec": 3.02
+    },
+    {
+      "id": "04",
+      "form": "mg",
+      "startSec": 14.98,
+      "endSec": 21.47,
+      "durationSec": 6.49
+    },
+    {
+      "id": "05",
+      "form": "presenter",
+      "startSec": 21.47,
+      "endSec": 24.49,
+      "durationSec": 3.02
+    },
+    {
+      "id": "06",
+      "form": "mg",
+      "startSec": 24.49,
+      "endSec": 30.98,
+      "durationSec": 6.49
+    },
+    {
+      "id": "07",
+      "form": "presenter",
+      "startSec": 30.98,
+      "endSec": 34,
+      "durationSec": 3.02
+    },
+    {
+      "id": "08",
+      "form": "mg",
+      "startSec": 34,
+      "endSec": 40.49,
+      "durationSec": 6.49
+    },
+    {
+      "id": "09",
+      "form": "presenter",
+      "startSec": 40.49,
+      "endSec": 43.51,
+      "durationSec": 3.02
+    },
+    {
+      "id": "10",
+      "form": "mg",
+      "startSec": 55.6,
+      "endSec": 51.024,
+      "durationSec": -4.576
+    },
+    {
+      "id": "11",
+      "form": "presenter",
+      "startSec": 55.51,
+      "endSec": 58.53,
+      "durationSec": 3.02
+    }
+  ]
+}

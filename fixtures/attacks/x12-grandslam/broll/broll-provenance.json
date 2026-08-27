@@ -1,0 +1,25 @@
+{
+  "revision": "v001",
+  "slots": [
+    {
+      "id": "02",
+      "promptPath": "broll/slot-02/prompt.txt",
+      "outputPath": "broll/blank.png"
+    },
+    {
+      "id": "04",
+      "promptPath": "broll/slot-04/prompt.txt",
+      "outputPath": "broll/blank.png"
+    },
+    {
+      "id": "07",
+      "promptPath": "broll/slot-07/prompt.txt",
+      "outputPath": "broll/blank.png"
+    },
+    {
+      "id": "08",
+      "promptPath": "broll/slot-08/prompt.txt",
+      "outputPath": "broll/blank.png"
+    }
+  ]
+}

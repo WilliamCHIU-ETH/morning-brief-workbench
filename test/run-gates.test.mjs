@@ -30,7 +30,7 @@ test('V4c 的 artifact：沒有任何 failed，退出碼 0', () => {
   const g = byId(report);
   assert.equal(g['ledger.alternation'].measured, 'P M P M P M P M P');
   assert.equal(g['ledger.coverage'].measured, 0.44);
-  assert.equal(g['caption.char-coverage'].measured, '236/236');
+  assert.match(g['caption.char-coverage'].measured, /量測 236／宣告 236／講稿 236/);
 });
 
 test('缺 artifact 的 gate 是 skipped，不是 passed', () => {

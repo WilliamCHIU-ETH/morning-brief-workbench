@@ -11,6 +11,16 @@
   },
   "gates": [
     {
+      "id": "script.lint-clean",
+      "stage": "script",
+      "rule": "lint-script.mjs 的所有 error 必須為 0；不逐項對應，因為 lint 新增規則時不會有人記得同步加 gate",
+      "observed": "V4c 為 0",
+      "threshold": {
+        "maxLintErrors": 0
+      },
+      "counterexample": "原本只有 4 道 script gate 對應 5 個 lint id，而 lint 有 18 個 error id。一份朗讀網址、寫「一定會漲」「確定受惠」、用價格當進出場依據、片型寫舊名的講稿，四道 gate 全部通過。"
+    },
+    {
       "id": "script.length",
       "stage": "script",
       "rule": "clean 字數落在片長目標的換算區間內",
@@ -91,9 +101,11 @@
       "rule": "素材蓋住主播的時間佔比",
       "observed": 0.44,
       "threshold": {
-        "maxCoverage": 0.5
+        "maxCoverage": 0.5,
+        "minCoverage": 0.25
       },
-      "counterexample": "V2 為 0.969，主播只露臉 1.85s，被判定為主要缺陷"
+      "counterexample": "V2 為 0.969，主播只露臉 1.85s，被判定為主要缺陷",
+      "derivation": "上界 0.5 防素材蓋滿（V2 為 0.969）；下界 0.25 防純講話頭（紅隊的 300 秒片子是 0.087，在報告上比 V4c 好看）。"
     },
     {
       "id": "ledger.greeting-uncovered",
@@ -119,7 +131,8 @@
       "rule": "字幕起點貼齊 B-roll 切點的比率（貼齊點必須落在前字講完與本字開始之間的語意停頓內）",
       "observed": 1.0,
       "threshold": {
-        "minSnapRatio": 0.9
+        "minSnapRatio": 0.9,
+        "minCuts": 1
       },
       "source": "V4b 實測 18 個邊界有 17 個重合",
       "measurement": "內部 B-roll 切點（segments[1..] 的 startSec）中，有字幕邊界（start 或 end）落在 ±0.02s 內的比率。方向刻意是「每次場景切換都要有字幕跟著換」。",
@@ -128,12 +141,12 @@
     {
       "id": "caption.char-coverage",
       "stage": "caption-ledger",
-      "rule": "字幕 cleanCharCount 總和必須等於講稿 clean 字數（合併字幕時容易掉）",
+      "rule": "字幕字數必須從 text 內容量出來（而非讀 cleanCharCount 欄位），且總和等於講稿 clean 字數；宣告值也必須與量測值相符",
       "observed": 236,
       "threshold": {
         "mustEqualScriptChars": true
       },
-      "counterexample": "合併短字幕時掉過 6 字，變成 230/236"
+      "counterexample": "原本 reduce 的是 cleanCharCount 欄位，從頭到尾沒看 text。紅隊把 text 寫成空字串、cleanCharCount 湊到 236，報「236/236 通過」。"
     },
     {
       "id": "video.fps-no-drop",
@@ -148,21 +161,26 @@
     {
       "id": "mg.hyperframes-clean",
       "stage": "mg-render",
-      "rule": "每一格 hyperframes check 必須 0 error",
-      "observed": 0,
+      "rule": "每一格 composition 的 hyperframes check 必須 0 error（lint／runtime／layout／motion／contrast 五類合計）",
+      "observed": "生成版與手寫版各 4 格皆 0 error",
       "threshold": {
         "maxErrors": 0
       },
-      "source": "npx --yes hyperframes@0.8.3 check"
+      "source": "npx --yes hyperframes@0.8.3 check",
+      "automated": true
     },
     {
       "id": "mg.prompt-provenance",
       "stage": "mg-render",
       "rule": "每一格的 prompt.txt 與實際 output 必須以 SHA-256 配對；prompt 文字相同不等於可共用 provenance",
       "threshold": {
-        "everySlotHashMatched": true
+        "everySlotHashMatched": true,
+        "outputSha256Required": true,
+        "outputsMustBeDistinct": true,
+        "promptFileMustExist": true
       },
-      "source": "CLAUDE.md B-roll Prompt provenance 隨 Revision 分版"
+      "source": "CLAUDE.md B-roll Prompt provenance 隨 Revision 分版",
+      "counterexample": "紅隊讓四格 outputPath 全部指向同一張 90 bytes 的 1x1 黑 PNG、promptPath 指向不存在的檔案、不寫 outputSha256，報告說「4 格全部配對」。因為 outputSha256 是選填，欄位不在就跳過整個比對。"
     },
     {
       "id": "frame.qa-text-match",
@@ -172,6 +190,139 @@
         "mismatches": 0
       },
       "counterexample": "slot 06 render 寫「美股道瓊」而 prompt 寫「道瓊」，修 render 不修 prompt"
+    },
+    {
+      "id": "plan.covers-script",
+      "stage": "segment-plan",
+      "rule": "plan 的 anchor 必須首尾相接、完整覆蓋講稿的每一個 clean 字元，不得有缺口或重疊",
+      "observed": "236/236",
+      "threshold": {
+        "mustCoverAllChars": true,
+        "noEmptyAnchor": true
+      },
+      "counterexample": "V3 的 plan 尾段留了已裁掉的 CTA 未覆蓋，靠 build-segment-ledger 印一行訊息帶過 另一種繞法：插入 anchor 為空字串的假格——indexOf(\"\") 永遠回 cursor，所以「接續」與「切在分句邊界」都成立，18 格 18/18 全過。"
+    },
+    {
+      "id": "plan.cuts-on-clause-boundary",
+      "stage": "segment-plan",
+      "rule": "每個格的邊界必須落在分句邊界（全形標點或換行之後）",
+      "observed": "9/9",
+      "threshold": {
+        "allCutsOnClauseBoundary": true
+      },
+      "source": "V4c 的 9 個切點實測全部落在分句邊界，因此分句是唯一的切點單位"
+    },
+    {
+      "id": "plan.responsibility-present",
+      "stage": "segment-plan",
+      "rule": "每個 mg 格都必須有 responsibility；那是 B-roll prompt 的依據，屬編輯意圖，程式不代填",
+      "observed": "4/4",
+      "threshold": {
+        "everyMaterialSlotHasResponsibility": true
+      }
+    },
+    {
+      "id": "plan.material-floor",
+      "stage": "segment-plan",
+      "rule": "plan 的素材格數與覆蓋率必須有上下界：太少是純講話頭，太多是 V2 那種素材蓋滿主播",
+      "observed": "4 格／44.0%",
+      "threshold": {
+        "minMaterialSlots": 3,
+        "minCoverage": 0.25,
+        "maxMaterialSlots": 6,
+        "maxCoverage": 0.5
+      },
+      "derivation": "V4c 是 4 格 44%。下界取 3 格／25%：少於三個素材時刻的晨報等於純講話頭。",
+      "counterexample": "一份 40 字的講稿會被規劃成 1 格、覆蓋率 0%，而 plan.covers-script、plan.cuts-on-clause-boundary、plan.responsibility-present 三道全部通過（0/0 算通過）。這與 ledger.min-presenter 的 Math.min([]) 回 Infinity 是同一類：空集合的真空通過。 反向也要擋：紅隊把 plan 的 9 格全部標成 mg（＝V2 主播幾乎不露臉的結構），下界版本報「9 格／100.0%」通過。"
+    },
+    {
+      "id": "ledger.invariants",
+      "stage": "segment-ledger",
+      "rule": "segments 必須每段長度為正、依時間排序、首尾相接、首段 startSec 為 0、durationSec 等於末段 endSec",
+      "observed": "V4c 9 段全部成立",
+      "threshold": {
+        "allInvariantsHold": true
+      },
+      "counterexample": "紅隊把第 10 格宣告成 startSec 55.60 → endSec 51.024（長度 −4.576s），真實覆蓋率 64.9% 被報成剛好 0.440。endSec−startSec 從不檢查非負，segments 也不檢查與 durationSec 對得上。"
+    },
+    {
+      "id": "ledger.duration-in-target",
+      "stage": "segment-ledger",
+      "rule": "durationSec 必須落在目標片長區間內",
+      "observed": 48.6,
+      "threshold": {
+        "minSec": 42,
+        "maxSec": 55
+      },
+      "counterexample": "契約寫 42–55s，但 targetSec 從來沒有量測對應。紅隊做出 300 秒的片子，覆蓋率 0.087 在報告上比 V4c 的 0.44 更好看。"
+    },
+    {
+      "id": "ledger.duration-matches-video",
+      "stage": "segment-ledger",
+      "rule": "durationSec 必須與加速後的主播影片實際長度相符（±0.5s）",
+      "threshold": {
+        "toleranceSec": 0.5
+      },
+      "counterexample": "durationSec 是自宣告的數字，沒有任何 gate 拿它跟實際影片對過。"
+    },
+    {
+      "id": "video.speed-factor",
+      "stage": "speedup",
+      "rule": "加速後片長 / 原始片長 必須等於設定的速度倍率",
+      "observed": 1.1,
+      "threshold": {
+        "expected": 1.1,
+        "tolerance": 0.03
+      },
+      "counterexample": "原本的 fps gate 用 speed = inDur/outDur 反推，逐位元複製（speed=1）與放慢一半（speed=0.5）都通過——門檻反而更鬆。語速校準是對「加速後」講的。"
+    },
+    {
+      "id": "caption.duration-sane",
+      "stage": "caption-ledger",
+      "rule": "每張字幕的長度與字數必須在合理範圍：0.9–8 秒、clean 字數不超過 26",
+      "observed": "V4c 22 張全部成立",
+      "threshold": {
+        "minSec": 0.9,
+        "maxSec": 8,
+        "maxChars": 26
+      },
+      "counterexample": "紅隊做出 9 張字幕、每張停 33 秒的片子，char-coverage 仍報 236/236 通過。"
+    },
+    {
+      "id": "plan.matches-ledger",
+      "stage": "segment-ledger",
+      "rule": "segment-plan 與 segment-ledger 的格數、id、form、anchor 必須逐格相同",
+      "observed": "V4c 9/9",
+      "threshold": {
+        "allSlotsMatch": true
+      },
+      "counterexample": "紅隊讓 plan 說 4 格 B-roll、ledger 說 0 格，兩者都通過各自的 gate。ledger 的 anchor 欄位在整個 runner 裡一次都沒被讀過。"
+    },
+    {
+      "id": "artifact.provenance-complete",
+      "stage": "all",
+      "rule": "每個由程式產生的 artifact 都必須有 sidecar，且 inputs 必須包含 script.txt",
+      "observed": "V4c 由各階段寫出時自動蓋章",
+      "threshold": {
+        "sidecarRequired": true
+      },
+      "counterexample": "requireFresh 是寫入方自願參加的：刪掉 sidecar 或把 inputs 改成 [] 就失效。紅隊據此做出「主播口播聯亞、字幕全片打鼎元」而 exit 0 的專案。手寫 artifact 天生沒有 sidecar，等於這道檢查對最可疑的輸入完全不作用。"
     }
-  ]
+  ],
+  "requiredArtifacts": {
+    "$note": "缺這些不是 skipped 而是 failed。紅隊實測：空目錄會得到「略過 20」與 exit 0——品質最差的輸入產生最乾淨的報告，因為它什麼都沒交。",
+    "always": [
+      "script.txt",
+      "segment-plan.json"
+    ],
+    "afterAvatar": [
+      "asr/script-char-times.json",
+      "segment-ledger.json",
+      "caption-ledger.json",
+      "avatar/raw.mp4",
+      "avatar/speeded.mp4",
+      "heygen-request.json"
+    ],
+    "$afterAvatarNote": "只要 avatar/raw.mp4 存在，就代表已經付費生成過，這批全部變成必要。"
+  }
 }

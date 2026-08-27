@@ -1,0 +1,11 @@
+{
+  "artifact": "caption-ledger.json",
+  "generatedBy": "build-caption-ledger.mjs",
+  "inputs": [
+    {
+      "path": "script.txt",
+      "sha256": "c2a2d8e4b06d3c61b643cf3fb304fab4de060e54e8f3ef63bb1892f7519b01bc",
+      "bytes": 833
+    }
+  ]
+}
