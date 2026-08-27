@@ -126,7 +126,13 @@ if (cmd === 'create') {
     process.exit(4);
   }
   const KEY = requireEnv('HEYGEN_API_KEY');
-  const payload = JSON.parse(fs.readFileSync(path.join(P.root, 'heygen-request.json'), 'utf8'));
+  const reqFile = path.join(P.root, 'heygen-request.json');
+  if (!fs.existsSync(reqFile)) {
+    console.error('缺 heygen-request.json —— 還沒跑過 dryrun。');
+    console.error('先跑 dryrun 產生 payload 並出示給使用者，取得同意之後才 create。');
+    process.exit(1);
+  }
+  const payload = JSON.parse(fs.readFileSync(reqFile, 'utf8'));
   const res = await fetch('https://api.heygen.com/v3/videos', {
     method: 'POST',
     headers: { 'X-Api-Key': KEY, 'Content-Type': 'application/json' },
@@ -142,8 +148,15 @@ if (cmd === 'create') {
 
 if (cmd === 'poll') {
   const KEY = requireEnv('HEYGEN_API_KEY');
-  const created = JSON.parse(fs.readFileSync(path.join(P.root, 'heygen-create-response.json'), 'utf8'));
+  const createdFile = path.join(P.root, 'heygen-create-response.json');
+  if (!fs.existsSync(createdFile)) {
+    console.error('缺 heygen-create-response.json —— 這一支還沒送出過生成請求。');
+    console.error('poll 只是輪詢既有的請求，不會自己送出。順序是 dryrun → 取得使用者同意 → create → poll。');
+    process.exit(1);
+  }
+  const created = JSON.parse(fs.readFileSync(createdFile, 'utf8'));
   const id = created?.data?.video_id ?? created?.video_id;
+  if (!id) { console.error('heygen-create-response.json 裡沒有 video_id。'); process.exit(1); }
   for (let i = 0; i < 90; i++) {
     const r = await fetch(`https://api.heygen.com/v3/videos/${id}`, { headers: { 'X-Api-Key': KEY } });
     const d = (await r.json().catch(() => ({})))?.data ?? {};
