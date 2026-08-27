@@ -18,7 +18,7 @@ const run = (project) => {
 const line = (s = '─') => console.log(s.repeat(66));
 
 console.log('');
-console.log('台股晨報產線 harness　·　黃金樣本 vs 攻擊樣本');
+console.log('台股晨報工作台　·　黃金樣本 vs 攻擊樣本');
 line();
 
 const good = run('fixtures/project-v4c');

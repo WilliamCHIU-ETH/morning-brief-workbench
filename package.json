@@ -1,5 +1,5 @@
 {
-  "name": "morning-brief-harness",
+  "name": "morning-brief-workbench",
   "private": true,
   "scripts": {
     "test": "node --test test/*.test.mjs",

@@ -1,4 +1,4 @@
-# morning-brief-harness
+# morning-brief-workbench
 
 **One Taiwan-stock morning-brief short video that passed review — together with the code that
 produced it, the golden sample it left behind, and the 28 executable gates that judge the next one.**
@@ -27,6 +27,14 @@ approving the paid avatar call.
 那邊素材與工具齊全但耦合較多，這邊是拿一支通過驗收的成品重做的乾淨版。
 發現對方的方向或產出好就抄過去，不引用、不 symlink、不讀對方的路徑。
 
+> **為什麼叫工作台。** 工具、材料、作業方法攤在同一張台面上，人或 agent 走過去就能開工，
+> 不必知道工廠其他地方有什麼。`contracts/` 那 28 道門檻是台面上的**量規**——
+> 量規本來就是工作台的標準配備，不是另一件東西。
+>
+> 原本叫 harness。軟體界的 harness 是 test harness，重心在「檢查」而不在「產出」，
+> 而那個字讓這份 README 的第一版把「還沒搬過來的階段」寫成了「這裡不做」。
+> 換掉它不只是好聽。
+
 ## 跑起來
 
 需要 Node 24。demo 不需要網路、不呼叫任何付費 API。
@@ -36,7 +44,7 @@ npm install --no-package-lock && npm run demo
 ```
 
 ```
-台股晨報產線 harness　·　黃金樣本 vs 攻擊樣本
+台股晨報工作台　·　黃金樣本 vs 攻擊樣本
 ──────────────────────────────────────────────────────────────────
 黃金樣本  project-v4c            通過 22　未通過 0
           （2026-08-26 實際出片的那一支，48.6 秒）
