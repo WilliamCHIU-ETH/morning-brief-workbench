@@ -1,0 +1,1 @@
+空目錄 fixture 需要一個檔案才能存活於 git。這個檔不是 canonical artifact，不影響 gate 判斷。
