@@ -162,9 +162,14 @@ function buildData(tid, f, slotText) {
       picked[picked.length - 1] = last.slice(0, cut);
       d.band = last.slice(cut);
     }
-    d.nodes = picked.map((s) => br(s.replace(/^(鼎元的|公司的|該公司)/u, ''), 5));
+    d.nodes = picked.map((s) => br(s.replace(/^(公司的|該公司|本公司)/u, ''), 5));
     while (d.nodes.length < 3) d.nodes.push('—');
-    if (!d.band) d.band = f.clauses.at(-1) ?? '';
+    // band 不能等於任何一個節點。fallback 取最後一個分句時，那個分句往往就是
+    // 第三個節點本身，結果同一句話在畫面上出現兩次。
+    if (!d.band) {
+      const last = f.clauses.at(-1) ?? '';
+      d.band = picked.some((s) => s === last || last.includes(s) || s.includes(last)) ? '' : last;
+    }
   }
   return d;
 }

@@ -7,3 +7,6 @@ gate-report.json
 # fixtures 的 sidecar 要進版控（gate 會檢查它們存在）；只忽略非 fixtures 的
 /*/**/*.provenance.json
 !fixtures/**/*.provenance.json
+
+# agent 的工作目錄
+projects/
