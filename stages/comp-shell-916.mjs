@@ -7,7 +7,10 @@ import { resolveProject, readJson } from './lib/project.mjs';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const P = resolveProject();
 const root = P.root;
-const seg = readJson(P, 'segmentLedger').segments;
+// ledger 在付費（HeyGen → ASR → 對齊）之後才會有。MG 版型在付費之前就要能產出，
+// 那時用 plan 的估計時長，所以這裡不能在 import 期就硬性要求 ledger。
+let seg = [];
+try { seg = readJson(P, 'segmentLedger').segments; } catch { seg = []; }
 const D = Object.fromEntries(seg.map((s) => [s.id, s.durationSec]));
 
 const C = {
