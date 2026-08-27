@@ -19,6 +19,7 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolveProject } from './lib/project.mjs';
+import { requireEnv } from './lib/env.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
@@ -124,11 +125,7 @@ if (cmd === 'create') {
     console.error('拒絕執行：付費前的 gate 沒有全部通過。先修到 exit 0 再來。');
     process.exit(4);
   }
-  const KEY = (process.env.HEYGEN_API_KEY || '').trim();
-  if (!KEY) {
-    console.error('缺少環境變數 HEYGEN_API_KEY。金鑰不進 repo，請在執行前設好。');
-    process.exit(5);
-  }
+  const KEY = requireEnv('HEYGEN_API_KEY');
   const payload = JSON.parse(fs.readFileSync(path.join(P.root, 'heygen-request.json'), 'utf8'));
   const res = await fetch('https://api.heygen.com/v3/videos', {
     method: 'POST',
@@ -144,8 +141,7 @@ if (cmd === 'create') {
 }
 
 if (cmd === 'poll') {
-  const KEY = (process.env.HEYGEN_API_KEY || '').trim();
-  if (!KEY) { console.error('缺少環境變數 HEYGEN_API_KEY。'); process.exit(5); }
+  const KEY = requireEnv('HEYGEN_API_KEY');
   const created = JSON.parse(fs.readFileSync(path.join(P.root, 'heygen-create-response.json'), 'utf8'));
   const id = created?.data?.video_id ?? created?.video_id;
   for (let i = 0; i < 90; i++) {

@@ -100,7 +100,16 @@ node stages/heygen.mjs --project <dir> poll
 付費前的 gate 必須全過。**但那三道鎖擋的是意外，不是你的判斷。
 使用者沒點頭就帶上那個旗標，是你違反協定，不是程式漏擋。**
 
-金鑰從環境變數 `HEYGEN_API_KEY` 讀，不在 repo 裡。
+**金鑰**：從**本 repo 自己的** `.env` 讀（已 gitignore）。第一次跑：
+
+```bash
+cp .env.example .env    # 然後把 HEYGEN_API_KEY 填進去
+```
+
+也可以單次覆寫：`HEYGEN_API_KEY=xxx npm run heygen -- --project <dir> create ...`
+
+**不要去 `marketing-video` 讀它的 `.env`。** 兩個 repo 刻意互不依賴，各自持有一份金鑰。
+去對方那裡拿會把解耦破掉，而且下次那邊改路徑這邊就壞了。
 
 ## 講稿的格式
 

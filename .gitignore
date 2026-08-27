@@ -13,3 +13,6 @@ projects/
 
 # ASR 模型 57MB，用 npm run setup:whisper 下載
 .cache/
+
+# 金鑰。每個 repo 各自持有一份，不進版控
+.env

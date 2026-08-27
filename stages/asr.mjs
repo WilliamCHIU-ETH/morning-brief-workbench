@@ -18,6 +18,9 @@ import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolveProject, writeJson } from './lib/project.mjs';
+import { loadEnv } from './lib/env.mjs';
+
+loadEnv();
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
