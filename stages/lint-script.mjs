@@ -210,11 +210,15 @@ if (timeHits.length > maxTime) {
 }
 
 // ── 數字 ───────────────────────────────────────────────────────────────────
-for (const m of body.matchAll(/\d+\.\d+/g)) {
+// ROLE.md 規則 F：價格保留小數（漲停價取整會失真），指數與點數取整。
+// 所以只對「非元」單位的小數示警。
+for (const m of body.matchAll(/\d+\.\d+\s*([\u4e00-\u9fff%]{0,2})/g)) {
+  const unit = m[1] ?? '';
+  if (/^元/.test(unit)) continue;
   add('warn', 'number.no-decimal',
-    `口播數字不帶小數：${m[0]}`,
-    { evidence: (body.match(new RegExp(`.{0,6}${m[0].replace('.', '\\.')}.{0,6}`)) || [])[0],
-      note: 'V4c 的漲停價 74.8 元刻意保留，取整會失真。此規則與 V4c 基準衝突，見報告末。' });
+    `指數與點數的小數建議取整：${m[0].trim()}`,
+    { evidence: (body.match(new RegExp(`.{0,6}${m[0].trim().replace('.', '\\.')}.{0,6}`)) || [])[0],
+      source: 'ROLE.md 規則 F' });
 }
 for (const p of PRICE_TRIGGER) {
   const m = body.match(p.re);
@@ -241,13 +245,11 @@ for (const s of body.split(/(?<=[。？！])/)) {
 }
 
 // ── 主動回報規格衝突 ───────────────────────────────────────────────────────
-add('info', 'spec.conflict',
-  'ROLE.md 寫「HOOK 放在昨日台股與昨晚美股之後」，但品質基準 V4c 是 HOOK 前置（變更提案 A 尚未併回 ROLE.md）。' +
-  '本次以 --hook=' + hookMode + ' 檢查。SKILL.md 對 HOOK 位置沒有規定，因此無法據 SKILL.md 裁決。');
-if (findings.some((f) => f.id === 'number.no-decimal')) {
-  add('info', 'spec.conflict',
-    'ROLE.md 的「數字取整、口播不帶小數」與 V4c 保留漲停價 74.8 元衝突。目前只給 warn，不擋。');
-}
+add('info', 'spec.variant',
+  `本 repo 的 ROLE.md 規則 A 明定 HOOK 前置，本次以 --hook=${hookMode} 檢查。` +
+  '這是對上游「HOOK 放在昨日台股與昨晚美股之後」的刻意偏離，機制與否證條件見 ROLE.md 第 3 節。' +
+  '五條規則都還沒用留存數據驗證。');
+
 
 // ── 輸出 ───────────────────────────────────────────────────────────────────
 const counts = { error: 0, warn: 0, info: 0 };

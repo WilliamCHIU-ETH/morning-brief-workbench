@@ -62,7 +62,10 @@ test('--hook=after-market 走 ROLE.md 原文結構，V4c 反而不合格', () =>
     'ROLE.md 要求問候在第一段，V4c 是 HOOK 在第一段');
 });
 
-test('每份報告都必須帶出規格衝突，不得靜默選邊', () => {
+test('每份報告都要聲明自己走的是變體規則，不得靜默選邊', () => {
   const { report } = lint('script.v4-nocta.txt');
-  assert.ok(report.findings.some((f) => f.id === 'spec.conflict'));
+  const v = report.findings.find((f) => f.id === 'spec.variant');
+  assert.ok(v, '報告必須帶出 spec.variant');
+  assert.match(v.message, /HOOK 前置/);
+  assert.match(v.message, /還沒用留存數據驗證/);
 });
