@@ -540,7 +540,11 @@ for (const id of ['frame.qa-text-match']) {
 
 // ── 輸出 ───────────────────────────────────────────────────────────────────
 const counts = results.reduce((a, r) => ({ ...a, [r.status]: (a[r.status] ?? 0) + 1 }), {});
-const report = { project: P.root, generatedFrom: 'contracts/acceptance.json', counts, results };
+// 產線分兩個階段。付費之前，下游 gate 是「還沒輪到」；付費之後，同樣的 skipped 是缺件。
+// 沒有這個區分，「通過 10　略過 18　exit 0」讀起來像成功——那是紅隊第一條的變形。
+const phase = paid ? 'post-avatar' : 'pre-avatar';
+const applicable = (counts.passed ?? 0) + (counts.failed ?? 0) + (counts.error ?? 0);
+const report = { project: P.root, phase, generatedFrom: 'contracts/acceptance.json', counts, results };
 fs.writeFileSync(P.path('gateReport'), `${JSON.stringify(report, null, 2)}\n`);
 
 if (asJson) {
@@ -548,7 +552,14 @@ if (asJson) {
 } else {
   const mark = { passed: '通過', failed: '未通過', skipped: '略過', manual: '人工', error: '錯誤' };
   console.log(`${P.root}`);
-  console.log(Object.entries(counts).map(([k, v]) => `${mark[k]} ${v}`).join('　'));
+  const phaseLabel = paid ? '付費後（主播影片已存在）' : '付費前（尚未生成主播影片）';
+  console.log(`階段：${phaseLabel}`);
+  console.log(`適用 ${applicable} 道　通過 ${counts.passed ?? 0}　未通過 ${(counts.failed ?? 0) + (counts.error ?? 0)}`
+    + (counts.skipped ? `　｜　待下一階段 ${counts.skipped} 道` : '')
+    + (counts.manual ? `　｜　人工 ${counts.manual} 道` : ''));
+  if (!paid && counts.skipped) {
+    console.log(`　　那 ${counts.skipped} 道要有主播影片與 ASR 才驗得到。**略過不等於通過。**`);
+  }
   console.log('');
   for (const r of results) {
     console.log(`[${mark[r.status]}] ${r.id.padEnd(28)} ${r.measured ?? ''}`);
