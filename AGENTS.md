@@ -10,20 +10,20 @@
 | 從講稿推導切段結構 | `npm run plan -- --project <dir> --write` |
 | 挑 MG 版型、抽資料、產出 composition | `node stages/plan-mg.mjs --project <dir> --write` |
 | 跑 28 道驗收門檻 | `npm run gates -- --project <dir>` |
-| 對齊、字幕、組裝（**需要主播影片**） | `stages/align-script.mjs` → `build-segment-ledger` → `build-caption-ledger` → `build-main` |
+| 主播生成（**唯一付費步驟，見下方協定**） | `node stages/heygen.mjs --project <dir> dryrun` |
+| 對齊、字幕、組裝（需要主播影片） | `stages/align-script.mjs` → `build-segment-ledger` → `build-caption-ledger` → `build-main` |
 
 ## 這裡做不到什麼
 
 **不要試，會白費時間：**
 
 - **docx → 講稿。** 沒有解析器，沒有選型規則。講稿是你寫的。
-- **HeyGen 主播生成。** 沒有金鑰、沒有呼叫程式。付費授權必須由使用者在
-  `marketing-video/app` 那邊執行，不在這裡。
-- **ffmpeg 加速、最終渲染、產出 mp4。** 同上。
+- **ffmpeg 加速之後的組裝與渲染。** 對齊、字幕、主場景的程式在這裡，
+  但最終 render 成 mp4 不在。
 - **實機截圖（Simulator）。** 一行程式都沒有，而且現行講稿沒有它的落點。
 
-所以你能做的是**付費之前的那一半**：講稿 → 切段 → 版面 → 驗收。那也是價值最高的一半，
-因為 2026-08-26 那六個版本的迭代成本幾乎全花在這裡。
+所以你能做的是：講稿 → 切段 → 版面 → 驗收 → **付費生成（需使用者明確同意）** → 對齊 → 字幕 → 組裝。
+缺的是最後的 render。付費之前那一段是價值最高的，2026-08-26 那六個版本的迭代成本幾乎全花在那裡。
 
 ## 開一支新影片的順序
 
@@ -56,6 +56,41 @@ npm run gates -- --project projects/20260827-<主題>
 > **不要拿那個數字當新專案的期待值。**
 
 退出碼 0 在付費前只代表「該驗的都驗過了」，不代表這一支好。**略過不等於通過。**
+
+## 唯一的付費關卡：協定不可省略
+
+主播生成是整條線**唯一不可逆且有成本**的步驟。流程固定三步，順序不得調換：
+
+**第一步：dryrun。不花錢。**
+
+```bash
+node stages/heygen.mjs --project <dir> dryrun
+```
+
+它會依契約組出 payload、估算成本、寫進 `heygen-request.json`。
+
+**第二步：出示並取得明確同意。**
+
+把三樣東西一起給使用者看：**完整講稿、payload、成本估算**。
+然後**用 `AskUserQuestion` 工具問**，不要用散文在回合結尾問。
+
+理由：散文問句會讓使用者以為你還在做事；`AskUserQuestion` 會跳出選項讓他直接點，
+而這是全流程唯一需要他決定的地方，值得一個明確的介面。
+
+問題就兩個選項：核准送出／不核准（並說明要改什麼）。
+
+**第三步：只有拿到明確同意才執行。**
+
+```bash
+node stages/heygen.mjs --project <dir> create --i-have-user-approval
+node stages/heygen.mjs --project <dir> poll
+```
+
+`create` 自己有三道鎖：旗標必須明寫、payload 必須逐欄符合契約、
+付費前的 gate 必須全過。**但那三道鎖擋的是意外，不是你的判斷。
+使用者沒點頭就帶上那個旗標，是你違反協定，不是程式漏擋。**
+
+金鑰從環境變數 `HEYGEN_API_KEY` 讀，不在 repo 裡。
 
 ## 講稿的格式
 

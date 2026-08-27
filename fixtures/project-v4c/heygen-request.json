@@ -1,0 +1,14 @@
+{
+  "type": "avatar",
+  "engine": {
+    "type": "avatar_iv"
+  },
+  "aspect_ratio": "9:16",
+  "resolution": "1080p",
+  "motion_prompt": "Seated with hands resting on the desk, barely move.",
+  "expressiveness": "low",
+  "avatar_id": "2ee530cfcdc62055d8b34a95b0c94300",
+  "voice_id": "df750e70c02c421fac1b532dfeb0989b",
+  "script": "鼎元昨天鎖上漲停74.8元，今天還能追嗎？\n\n早安，親愛的投資人。昨日台股只漲214點，美股道瓊還重挫703點。\n\n大盤沒有特別強，錢是選擇性地進去的。那市場選了什麼？\n\n市場買的是光通訊放量。AI資料中心與CPO需求升溫，鼎元的光通訊產品下半年進入放量階段。\n\n基本面也接得上。產品組合正從LED轉向光通訊，公司規劃投入12億元擴產。不過，這裡有個時間差。\n\n擴產要蓋、客戶要認證、產品要真的出貨，這三件都還在進行。放量沒發生，題材就只是題材。\n\n所以今天先看兩件事：光通訊族群有沒有一起轉強，鼎元的量能有沒有延續。只剩題材、量能跟不上，就先不要追價。",
+  "title": "鼎元2426光通訊放量攻漲停"
+}
