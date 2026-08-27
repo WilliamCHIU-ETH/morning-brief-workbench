@@ -4,7 +4,10 @@
 produced it, the golden sample it left behind, and the 28 executable gates that judge the next one.**
 
 Every gate carries the failure that created it, so the thresholds are evidence rather than opinion.
-Not included: the paid avatar generation and the final render — those live in a private pipeline.
+
+**Goal:** an agent working in this directory produces a finished video in one pass —
+script, structure, motion graphics, avatar, captions, render — with a single human gate:
+approving the paid avatar call.
 
 ---
 
@@ -17,8 +20,12 @@ Not included: the paid avatar generation and the final render — those live in 
 - **跑** — 從講稿推導切段結構、挑 MG 版型、抽資料、產出 composition
 - **驗** — 28 道門檻說哪裡還不夠，每一道都附它是被什麼事故逼出來的
 
-**不在這裡**：付費的主播生成（HeyGen）與最終渲染。那兩段在 `marketing-video/app`，
-本 repo 只覆蓋它們前後的部分。clone 下來不會產出 mp4。
+**目標**：agent 在這個目錄底下**一口氣做完一支影片**——講稿、切段、動態圖卡、主播、
+字幕、組裝、渲染——中間只有一道人工關卡：**核准付費的主播生成**。
+
+這條線與 `marketing-video/app` 是**兩個等價、互不依賴的實作**。同一個目標、不同的取捨：
+那邊素材與工具齊全但耦合較多，這邊是拿一支通過驗收的成品重做的乾淨版。
+發現對方的方向或產出好就抄過去，不引用、不 symlink、不讀對方的路徑。
 
 ## 跑起來
 

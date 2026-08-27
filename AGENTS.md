@@ -1,6 +1,7 @@
 # 給 agent 的入口
 
-你在 `morning-brief-harness`。**這裡是台股晨報短影音的驗收與生成 harness，不是完整產線。**
+你在 `morning-brief-harness`。**目標是在這個目錄底下一口氣做完一支台股晨報短影音**——
+講稿、切段、動態圖卡、主播、字幕、組裝、渲染——中間只有一道人工關卡：核准付費的主播生成。
 
 ## 這裡做得到什麼
 
@@ -11,19 +12,21 @@
 | 挑 MG 版型、抽資料、產出 composition | `node stages/plan-mg.mjs --project <dir> --write` |
 | 跑 28 道驗收門檻 | `npm run gates -- --project <dir>` |
 | 主播生成（**唯一付費步驟，見下方協定**） | `node stages/heygen.mjs --project <dir> dryrun` |
-| 對齊、字幕、組裝（需要主播影片） | `stages/align-script.mjs` → `build-segment-ledger` → `build-caption-ledger` → `build-main` |
+| 加速主播影片 | `npm run speedup -- --project <dir>` |
+| ASR 逐字時間 | `npm run asr -- --project <dir>` |
+| 對齊、字幕、組裝 | `stages/align-script.mjs` → `build-segment-ledger` → `build-caption-ledger` → `build-main` |
+| 渲染 MG 與成片 | `npm run render -- --project <dir> all` |
 
-## 這裡做不到什麼
+## 這裡不做什麼
 
-**不要試，會白費時間：**
+這兩件是**使用者裁定不做**，不是還沒做：
 
-- **docx → 講稿。** 沒有解析器，沒有選型規則。講稿是你寫的。
-- **ffmpeg 加速之後的組裝與渲染。** 對齊、字幕、主場景的程式在這裡，
-  但最終 render 成 mp4 不在。
-- **實機截圖（Simulator）。** 一行程式都沒有，而且現行講稿沒有它的落點。
+- **docx → 講稿的選型。** 沒有解析器，也沒有「個股／族群／時事」的挑選規則。講稿是你寫的。
+- **實機截圖（Simulator）。** 一行程式都沒有，而且現行講稿沒有它的落點
+  （提到 App 功能的句子是 0 句）。
 
-所以你能做的是：講稿 → 切段 → 版面 → 驗收 → **付費生成（需使用者明確同意）** → 對齊 → 字幕 → 組裝。
-缺的是最後的 render。付費之前那一段是價值最高的，2026-08-26 那六個版本的迭代成本幾乎全花在那裡。
+其餘沒提到的都在這裡。**如果你發現某個階段缺了，那是差距，不是邊界——回報它，不要繞路去
+`marketing-video` 找。** 那是一條平行的實作，不是這條線的上游。
 
 ## 開一支新影片的順序
 
@@ -141,4 +144,5 @@ HOOK 前置、問候降位、台股美股合併並服務於論證、段落之間
 - **不要改 `contracts/acceptance.json` 的門檻來讓自己的產出通過。** 每一道門檻都附了它是被
   什麼事故逼出來的；改門檻等於把那次事故放回來。真的該改就先說明新的量測來源。
 - **不要在 `fixtures/` 底下工作。** 那是黃金樣本與 12 個攻擊樣本，測試靠它們。
-- **不要進 `marketing-video/app`。** 那邊由別的 session 持有。
+- **不要讀 `marketing-video`。** 那是一條**平行等價**的實作，不是這條線的上游或依賴。
+  兩邊刻意不互相引用；要交流是把好東西**抄**過來，而那是使用者的決定，不是你的。

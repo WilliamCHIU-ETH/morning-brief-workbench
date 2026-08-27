@@ -10,3 +10,6 @@ gate-report.json
 
 # agent 的工作目錄
 projects/
+
+# ASR 模型 57MB，用 npm run setup:whisper 下載
+.cache/

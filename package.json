@@ -6,6 +6,11 @@
     "lint:script": "node stages/lint-script.mjs",
     "gates": "node stages/run-gates.mjs",
     "plan": "node stages/plan-segments.mjs",
-    "demo": "node stages/demo.mjs"
+    "demo": "node stages/demo.mjs",
+    "speedup": "node stages/speedup.mjs",
+    "asr": "node stages/asr.mjs",
+    "render": "node stages/render.mjs",
+    "heygen": "node stages/heygen.mjs",
+    "setup:whisper": "bash scripts/setup-whisper.sh"
   }
 }
