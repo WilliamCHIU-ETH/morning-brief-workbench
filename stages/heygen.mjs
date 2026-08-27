@@ -68,8 +68,36 @@ function buildPayload() {
 if (cmd === 'dryrun') {
   const payload = buildPayload();
   fs.writeFileSync(path.join(P.root, 'heygen-request.json'), `${JSON.stringify(payload, null, 2)}\n`);
+  // 出示用的版本：id 加註人名，講稿折成一行摘要。
+  // 講稿在這個區塊上面已經完整出示過，塞進來只會讓 payload 沒法掃視——
+  // 而使用者要核准的正是「送出去的是不是我看過的那份設定」。
+  const label = (k, v) => {
+    if (k === 'avatar_id') return lock.registry?.avatars?.[v];
+    if (k === 'voice_id') return lock.registry?.voices?.[v];
+    return null;
+  };
+  const lines = [];
+  const walk = (o, indent) => {
+    const keys = Object.keys(o);
+    keys.forEach((k, i) => {
+      const v = o[k];
+      const comma = i < keys.length - 1 ? ',' : '';
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        lines.push(`${indent}"${k}": { ${Object.entries(v).map(([a, b2]) => `"${a}": ${JSON.stringify(b2)}`).join(', ')} }${comma}`);
+        return;
+      }
+      const shown = k === 'script'
+        ? `"<${cleanBodyWithIndex(String(v)).length} clean 字，即上方講稿>"`
+        : JSON.stringify(v);
+      const note = label(k, v);
+      lines.push(`${indent}"${k}": ${shown}${comma}${note ? `   // ${note}` : ''}`);
+    });
+  };
   console.log('── 要送出的 payload ──────────────────────────────────');
-  console.log(JSON.stringify(payload, null, 2));
+  console.log('{');
+  walk(payload, '  ');
+  lines.forEach((l) => console.log(l));
+  console.log('}');
   console.log('');
   console.log('── 成本 ──────────────────────────────────────────────');
   console.log(`clean ${cleanChars} 字 → 生成端原始長度約 ${rawSec[0].toFixed(1)}–${rawSec[1].toFixed(1)} 秒`);

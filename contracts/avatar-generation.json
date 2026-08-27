@@ -50,5 +50,14 @@
       "howToResolve": "下一次付費呼叫時順便量：同一份講稿走 voice_settings.speed=1.1，記錄 clean 字數與實際片長，得出該路徑的字／秒，再決定是否取代 ffmpeg 加速。",
       "source": "app/run.js:645、app/scripts/heygen-video-title.js:1614"
     }
-  ]
+  ],
+  "registry": {
+    "$note": "id 對人名。出示 payload 給使用者核准時，光看 32 位十六進位無法判斷送的是誰。",
+    "avatars": {
+      "2ee530cfcdc62055d8b34a95b0c94300": "Angela-9x16（直式、坐姿）"
+    },
+    "voices": {
+      "df750e70c02c421fac1b532dfeb0989b": "Angela4"
+    }
+  }
 }
