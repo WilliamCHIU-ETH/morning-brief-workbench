@@ -75,7 +75,9 @@ if (cmd === 'slots' || cmd === 'all') {
     }
     const out = path.join('renders', `${path.basename(f, '.html')}.mp4`);
     console.log(`渲染 ${f} → ${out}`);
-    run(['render', path.relative(P.root, qa), '-o', path.join('..', '..', out)],
+    // -o 是相對於 **process cwd**（這裡是 P.root），不是相對於傳進去的專案目錄。
+    // 第一版寫成 '../../' + out，以為基準是 qa/<name>，結果 mp4 落到 P.root 的祖父目錄。
+    run(['render', path.relative(P.root, qa), '-o', out],
       { stdio: ['ignore', 'inherit', 'inherit'] });
   }
 }
