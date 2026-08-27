@@ -5,6 +5,7 @@
     "test": "node --test test/*.test.mjs",
     "lint:script": "node stages/lint-script.mjs",
     "gates": "node stages/run-gates.mjs",
-    "plan": "node stages/plan-segments.mjs"
+    "plan": "node stages/plan-segments.mjs",
+    "demo": "node stages/demo.mjs"
   }
 }
