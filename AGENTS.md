@@ -53,12 +53,67 @@ node stages/plan-mg.mjs --project projects/20260827-<主題> --write
 npm run gates -- --project projects/20260827-<主題>
 ```
 
-第 7 步在付費之前**只跑得到 10 道**（講稿 5、plan 5）。其餘 18 道需要主播影片與 ASR。
+第 7 步在付費之前**只跑得到 10–11 道**（講稿 5、plan 5，跑過 dryrun 再加 payload 那道）。其餘要主播影片與 ASR。
 
 > 黃金樣本 `fixtures/project-v4c` 顯示「通過 22」，是因為它已經有 `asr/` 與 ledger。
 > **不要拿那個數字當新專案的期待值。**
 
 退出碼 0 在付費前只代表「該驗的都驗過了」，不代表這一支好。**略過不等於通過。**
+
+### 核准之後：一路跑到成片，不要停
+
+```bash
+# 8-9. 主播生成（唯一人工關卡，協定見下一節）
+npm run heygen -- --project <dir> dryrun
+#     ↑ 出示講稿＋payload＋成本，AskUserQuestion 取得同意
+npm run heygen -- --project <dir> create --i-have-user-approval
+npm run heygen -- --project <dir> poll
+
+# 10. 加速（必須守 fps 判準）
+npm run speedup -- --project <dir>
+
+# 11. ASR 與強制對齊
+npm run asr -- --project <dir>
+node stages/align-script.mjs --project <dir> --duration <加速後秒數>
+
+# 12. 兩份 ledger
+node stages/build-segment-ledger.mjs --project <dir> --duration <加速後秒數>
+node stages/build-caption-ledger.mjs --project <dir>
+
+# 13. 組裝與渲染
+node stages/build-main.mjs --project <dir>
+npm run render -- --project <dir> all
+
+# 14. 全量驗收（此時 28 道都跑得到）
+npm run gates -- --project <dir>
+```
+
+**第 8 步之後不要再回來問。** 使用者已經在唯一的關卡點過頭了，中間的產物
+（加速後的長度、ASR 的字數、切段的秒數）都不需要他決定——那些有 gate 在管。
+
+某一步失敗就**當場修再繼續**，不要把失敗當成回報點停下來。gate 未通過也一樣：
+看它說哪一道、為什麼，修掉重跑。**只有一種情況該停：修不動，而且你說得出卡在哪。**
+
+### 完成之後要交付什麼
+
+一則回覆，四樣：
+
+1. **成片路徑**與長度、檔案大小
+2. **全量 gate 報告** —— 28 道各自的狀態，未通過的逐條說明
+3. **與黃金樣本的差異** —— 覆蓋率、片長、轉折數、字幕貼齊率，並排
+4. **你自己看過之後的判斷** —— 哪裡可能不好。gate 管不到主播像不像真人、
+   B-roll 好不好看、講稿有不有趣，那三件要你先講，不要等使用者發現
+
+## 兩種「gate」不要混用
+
+這份文件裡出現兩個不同的東西，講的時候要分清楚：
+
+- **人工關卡**：整條線**只有一個**——核准付費的主播生成。其餘任何地方都不該停下來問。
+- **驗收門檻**：`contracts/acceptance.json` 的 28 道，全自動，只有通過與未通過，
+  **不會、也不該停下來問人**。
+
+成片出來之後給使用者看，那不是關卡——**片子已經做完了，後面沒有不可逆的事。**
+那是交付，不是請示。
 
 ## 唯一的付費關卡：協定不可省略
 
