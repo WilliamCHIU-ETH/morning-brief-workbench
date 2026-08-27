@@ -39,8 +39,8 @@ const MAX_MATERIAL_RUN = th('ledger.max-material-run').maxMaterialRunSec ?? 6.5;
 const MAX_COVERAGE = th('ledger.coverage').maxCoverage ?? 0.5;
 const TARGET_COVERAGE = acceptance.gates.find((g) => g.id === 'ledger.coverage')?.observed ?? 0.44;
 
-// 語速區間：計畫必須在兩個端點都合法
-const RATE = [4.70, 4.91];
+// 語速區間：計畫必須在兩個端點都合法。從契約讀，不寫死。
+const RATE = acceptance.calibration.rateBand;
 
 let P;
 try { P = resolveProject(); } catch (e) {

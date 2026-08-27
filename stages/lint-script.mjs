@@ -26,11 +26,9 @@ const acceptance = JSON.parse(
 const gate = (id) => acceptance.gates.find((g) => g.id === id)?.threshold ?? {};
 
 // ── 校準常數 ────────────────────────────────────────────────────────────────
-// 4.70–4.91 clean chars/s 是加速後的成品語速區間，來源 晨報講稿時長換算表.md 的五個實測點。
-// 兩條路徑都被調到落在這個區間內：API 1.2×（raw 3.97 → 4.76）、Studio 1.1×（raw 4.39 → 4.83）。
-// 因此區間是對「成品語速」的約束，與用哪條路徑加速無關。
-const RATE_MIN = 4.70;
-const RATE_MAX = 4.91;
+// 語速區間從契約讀，不在這裡寫死——本 repo 自己的原則是「門檻只在一處定義」。
+// 五個實測點、推導與適用範圍都在 contracts/acceptance.json 的 calibration。
+const [RATE_MIN, RATE_MAX] = acceptance.calibration.rateBand;
 const TARGET_SEC = { min: 42, max: 55 }; // V4c 48.6s 通過；V2 60.5s 被判定太長
 
 // ── 禁用寫法（晨報腳本_ROLE.md「禁用寫法」節） ───────────────────────────────

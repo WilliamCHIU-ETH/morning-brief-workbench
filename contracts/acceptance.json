@@ -324,5 +324,54 @@
       "heygen-request.json"
     ],
     "$afterAvatarNote": "只要 avatar/raw.mp4 存在，就代表已經付費生成過，這批全部變成必要。"
+  },
+  "calibration": {
+    "$note": "成品語速（加速之後）的校準區間。這是整條線唯一的字數→片長換算依據，lint 與 plan-segments 都從這裡讀，不得各自寫死。",
+    "rateBand": [
+      4.7,
+      4.91
+    ],
+    "unit": "clean chars/sec",
+    "measuredPoints": [
+      {
+        "id": "EXP-001",
+        "cleanChars": 329,
+        "rawSec": 81.709,
+        "finalSec": 68.091,
+        "rate": 4.83
+      },
+      {
+        "id": "EXP-002",
+        "cleanChars": 220,
+        "rawSec": 56.209,
+        "finalSec": 46.841,
+        "rate": 4.7
+      },
+      {
+        "id": "EXP-008",
+        "cleanChars": 258,
+        "rawSec": 65.5935,
+        "finalSec": 54.661,
+        "rate": 4.72
+      },
+      {
+        "id": "PROD-003",
+        "cleanChars": 240,
+        "rawSec": 58.697,
+        "finalSec": 48.914,
+        "rate": 4.91
+      },
+      {
+        "id": "PROD-0821-DINGYUAN",
+        "cleanChars": 286,
+        "rawSec": 72.594,
+        "finalSec": 60.495,
+        "rate": 4.73
+      }
+    ],
+    "derivation": "五個實測點跨 220–329 字，離散度 4.4%，取上下緣為區間。",
+    "appliesTo": "ffmpeg 加速路徑（API 1.2x 得 4.76；網頁 Studio 1.1x 實測 4.86，兩者都落在區間內）。",
+    "doesNotApplyTo": "HeyGen voice_settings.speed。TTS 改速是重新合成而非時間拉伸，那條路徑的字/秒尚未量測，見 avatar-generation.json 的 candidates。",
+    "source": "marketing-video/晨報講稿時長換算表.md"
   }
 }
