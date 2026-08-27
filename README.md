@@ -1,29 +1,44 @@
 # morning-brief-workbench
 
-**An agent working in this directory turns a Taiwan-stock morning brief into a finished 9:16
-short video in one pass** — script, structure, motion graphics, avatar, captions, render —
-with a single human gate: approving the paid avatar call.
+**The problem:** a daily Taiwan-stock morning-brief video is easy to make once and hard to make
+twice. The first version that actually worked took six iterations and four rounds of human
+review — and nothing in the pipeline knew *why* it was good, so the next one could quietly
+regress on any of a dozen axes.
 
-It ships with one video that already passed review, the code that produced it, and 28 executable
-gates that judge the next one. Every gate carries the failure that created it, so the thresholds
-are evidence rather than opinion.
+**What this does:** it writes "good enough" down as 28 executable gates, keeps the one video that
+passed review as a runnable golden sample, and lets an agent walk up and produce the next one in
+a single pass. One human checkpoint: approving the paid avatar call.
+
+![架構圖](docs/architecture.png)
 
 ---
 
-## 這是什麼
+## 要解決的問題
 
-**agent 在這個目錄底下,把一篇台股晨報做成一支完整的 9:16 短影音——一口氣做完。**
-講稿、切段、動態圖卡、主播、字幕、組裝、渲染,中間只有**一道人工關卡**:
-核准付費的主播生成。
+**做一支不難,做穩很難。**
 
-台面上已經備好三樣:
+2026-08-26 那支通過驗收的影片,是**六個版本、四輪人眼 audit** 的結果。被抓出來的是這些:
+頂欄壓住主播的頭、標題板與 B-roll 同色、主播的手一直上下擺、字幕以句號結尾、
+B-roll 早於語音、第一格素材蓋掉問候。
 
-- **抄** — `fixtures/project-v4c/` 是 2026-08-26 實際出片那一支的完整可執行樣本
-- **跑** — 從講稿推導切段結構、挑 MG 版型、抽資料、產出 composition、渲染
-- **驗** — 28 道門檻說哪裡還不夠,**每一道都附它是被什麼事故逼出來的**
+**而更早那一支是完全照規格做的,也通過了規格自己的交稿前檢查,卻被評「平鋪直述、沒有 hook」。**
+所以問題不在執行,在**規則本身沒有把「什麼叫好」寫下來**。
 
-一支成品長這樣:48.6 秒、1080×1920、9 格(主播與素材嚴格交替)、22 段字幕、
-素材覆蓋率 44%。
+結果是:同一個人做第二支,不知道哪裡會退化。
+
+## 這個工作台怎麼解
+
+把三樣東西攤在同一張台面上,agent 走過來就能開工:
+
+- **規格** — `ROLE.md` 五條規則,每條附機制與**否證條件**。它是拿來改的,不是拿來遵守的。
+- **量規** — 28 道可執行門檻,**每一道都附「它是被什麼事故逼出來的」**。
+  數字誰都能猜,失敗紀錄不能。
+- **樣本** — `fixtures/project-v4c/` 是那支通過驗收的完整可執行專案;
+  另有 12 個**攻擊樣本**,是曾經騙過門檻的壞輸入,現在被測試鎖住。
+
+**中間只有一道人工關卡:核准付費的主播生成。** 其餘不停——中間產物有量規在管。
+
+一支成品:48.6 秒、1080×1920、9 格(主播與素材嚴格交替)、22 段字幕、素材覆蓋率 44%。
 
 ## 與 marketing-video/app 的關係
 

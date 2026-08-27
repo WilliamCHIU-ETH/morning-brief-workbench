@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<title>morning-brief-workbench 架構</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#F7F8FA;font-family:'Geist','Noto Sans TC',sans-serif}
+  .wrap{max-width:1200px;margin:0 auto;padding:2rem}
+  svg{width:100%;height:auto;display:block}
+</style></head><body><div class="wrap">
+<svg viewBox="0 0 1160 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mbw-arch-title mbw-arch-desc">
+<title id="mbw-arch-title">morning-brief-workbench 架構</title>
+<desc id="mbw-arch-desc">一篇台股晨報經過講稿、結構與畫面、主播生成、對齊字幕組裝渲染四個階段成為成片；台面上另有材料與量規兩層在旁支援；整條線只有主播生成那一步需要人核准付費。</desc>
+<defs>
+  <marker id="a" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#4A6285"/></marker>
+  <marker id="aa" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#E8A200"/></marker>
+  <marker id="as" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#8798AE"/></marker>
+</defs>
+<rect width="100%" height="100%" fill="#F7F8FA"/>
+
+<!-- 規格與材料 bar -->
+<rect x="184" y="32" width="792" height="56" rx="6" fill="rgba(9,39,90,0.03)" stroke="rgba(9,39,90,0.20)" stroke-width="1"/>
+<rect x="200" y="26" width="76" height="12" rx="2" fill="#F7F8FA"/>
+<text x="238" y="35" fill="rgba(9,39,90,0.45)" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">規格與材料</text>
+<text x="276" y="58" fill="#09275A" font-size="12" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">規格</text>
+<text x="276" y="76" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">ROLE.md 五條規則＋否證條件</text>
+<text x="560" y="58" fill="#09275A" font-size="12" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">黃金樣本</text>
+<text x="560" y="76" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">fixtures/project-v4c 完整可執行</text>
+<text x="852" y="58" fill="#09275A" font-size="12" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">素材與版面</text>
+<text x="852" y="76" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">assets/ 字型 logo BGM ・ template/</text>
+
+<!-- zone 工作台 -->
+<rect x="184" y="128" width="792" height="160" rx="8" fill="rgba(9,39,90,0.02)" stroke="rgba(9,39,90,0.10)" stroke-width="0.8"/>
+<rect x="200" y="132" width="72" height="12" rx="2" fill="#F7F8FA"/>
+<text x="236" y="141" fill="rgba(9,39,90,0.40)" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">工作台 · 工具</text>
+
+<!-- 主流程箭頭（同 y，直線） -->
+<line x1="168" y1="208" x2="196" y2="208" stroke="#4A6285" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="352" y1="208" x2="372" y2="208" stroke="#4A6285" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="544" y1="208" x2="564" y2="208" stroke="#4A6285" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="720" y1="208" x2="740" y2="208" stroke="#4A6285" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="960" y1="208" x2="988" y2="208" stroke="#4A6285" stroke-width="1.2" marker-end="url(#a)"/>
+
+<!-- 材料 → 階段（虛線，垂直） -->
+<line x1="276" y1="88" x2="276" y2="156" stroke="#8798AE" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#as)"/>
+<line x1="852" y1="88" x2="852" y2="156" stroke="#8798AE" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#as)"/>
+
+<!-- 量規 → 階段（虛線，垂直向上） -->
+<line x1="276" y1="352" x2="276" y2="260" stroke="#8798AE" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#as)"/>
+<line x1="460" y1="352" x2="460" y2="260" stroke="#8798AE" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#as)"/>
+<line x1="644" y1="352" x2="644" y2="260" stroke="#E8A200" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#aa)"/>
+<line x1="852" y1="352" x2="852" y2="260" stroke="#8798AE" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#as)"/>
+
+<!-- 節點 -->
+<rect x="32" y="160" width="136" height="96" rx="6" fill="#F7F8FA"/>
+<rect x="32" y="160" width="136" height="96" rx="6" fill="rgba(74,98,133,0.10)" stroke="#8798AE" stroke-width="1"/>
+<rect x="40" y="168" width="36" height="12" rx="2" fill="none" stroke="rgba(135,152,174,0.5)" stroke-width="0.8"/>
+<text x="58" y="177" fill="#4A6285" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.08em">INPUT</text>
+<text x="100" y="212" fill="#09275A" font-size="14" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">台股晨報</text>
+<text x="100" y="234" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">.docx</text>
+
+<rect x="200" y="160" width="152" height="96" rx="6" fill="#F7F8FA"/>
+<rect x="200" y="160" width="152" height="96" rx="6" fill="#ffffff" stroke="#09275A" stroke-width="1"/>
+<text x="276" y="200" fill="#09275A" font-size="14" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">講稿</text>
+<text x="276" y="222" fill="#4A6285" font-size="10" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">人寫，規則在 ROLE.md</text>
+<text x="276" y="240" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">lint-script</text>
+
+<rect x="376" y="160" width="168" height="96" rx="6" fill="#F7F8FA"/>
+<rect x="376" y="160" width="168" height="96" rx="6" fill="#ffffff" stroke="#09275A" stroke-width="1"/>
+<text x="460" y="200" fill="#09275A" font-size="14" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">結構與畫面</text>
+<text x="460" y="222" fill="#4A6285" font-size="10" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">切段 · 四種 MG 版型</text>
+<text x="460" y="240" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">plan-segments  plan-mg</text>
+
+<rect x="568" y="160" width="152" height="96" rx="6" fill="#F7F8FA"/>
+<rect x="568" y="160" width="152" height="96" rx="6" fill="rgba(255,212,0,0.18)" stroke="#E8A200" stroke-width="1.2"/>
+<rect x="576" y="168" width="92" height="12" rx="2" fill="none" stroke="rgba(232,162,0,0.6)" stroke-width="0.8"/>
+<text x="622" y="177" fill="#B07800" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.08em">唯一人工關卡</text>
+<text x="644" y="212" fill="#09275A" font-size="14" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">主播生成</text>
+<text x="644" y="234" fill="#8A6400" font-size="10" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">核准付費才送出</text>
+
+<rect x="744" y="160" width="216" height="96" rx="6" fill="#F7F8FA"/>
+<rect x="744" y="160" width="216" height="96" rx="6" fill="#ffffff" stroke="#09275A" stroke-width="1"/>
+<text x="852" y="200" fill="#09275A" font-size="14" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">對齊 · 字幕 · 組裝 · 渲染</text>
+<text x="852" y="222" fill="#4A6285" font-size="10" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">加速 → ASR → 逐字對齊 → 兩份 ledger</text>
+<text x="852" y="240" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">speedup  asr  align  build-main  render</text>
+
+<rect x="992" y="160" width="136" height="96" rx="6" fill="#F7F8FA"/>
+<rect x="992" y="160" width="136" height="96" rx="6" fill="rgba(9,39,90,0.05)" stroke="#4A6285" stroke-width="1"/>
+<rect x="1000" y="168" width="44" height="12" rx="2" fill="none" stroke="rgba(74,98,133,0.5)" stroke-width="0.8"/>
+<text x="1022" y="177" fill="#4A6285" font-size="7" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.08em">OUTPUT</text>
+<text x="1060" y="212" fill="#09275A" font-size="14" font-weight="600" font-family="'Noto Sans TC',sans-serif" text-anchor="middle">成片</text>
+<text x="1060" y="234" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace" text-anchor="middle">1080×1920  48.6s</text>
+
+<!-- 量規 bar -->
+<rect x="184" y="352" width="792" height="56" rx="6" fill="rgba(232,162,0,0.05)" stroke="rgba(232,162,0,0.45)" stroke-width="1"/>
+<rect x="200" y="346" width="44" height="12" rx="2" fill="#F7F8FA"/>
+<text x="222" y="355" fill="#B07800" font-size="8" font-family="'Geist Mono',monospace" text-anchor="middle" letter-spacing="0.14em">量規</text>
+<text x="228" y="378" fill="#09275A" font-size="12" font-weight="600" font-family="'Noto Sans TC',sans-serif">28 道可執行門檻</text>
+<text x="228" y="396" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace">contracts/acceptance.json</text>
+<text x="560" y="378" fill="#09275A" font-size="12" font-weight="600" font-family="'Noto Sans TC',sans-serif">每一道都附「它是被什麼事故逼出來的」</text>
+<text x="560" y="396" fill="#4A6285" font-size="9" font-family="'Geist Mono',monospace">counterexample  ·  fixtures/attacks 12 個攻擊樣本鎖住</text>
+
+<!-- legend -->
+<line x1="32" y1="452" x2="1128" y2="452" stroke="rgba(9,39,90,0.10)" stroke-width="0.8"/>
+<text x="32" y="472" fill="#4A6285" font-size="8" font-family="'Geist Mono',monospace" letter-spacing="0.14em">LEGEND</text>
+<line x1="128" y1="468" x2="164" y2="468" stroke="#4A6285" stroke-width="1.2"/>
+<text x="172" y="472" fill="#4A6285" font-size="10" font-family="'Noto Sans TC',sans-serif">產製流程</text>
+<line x1="264" y1="468" x2="300" y2="468" stroke="#8798AE" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="308" y="472" fill="#4A6285" font-size="10" font-family="'Noto Sans TC',sans-serif">規格・材料・量規在旁支援，不在流程上</text>
+<rect x="596" y="461" width="16" height="14" rx="3" fill="rgba(255,212,0,0.18)" stroke="#E8A200" stroke-width="1.2"/>
+<text x="620" y="472" fill="#4A6285" font-size="10" font-family="'Noto Sans TC',sans-serif">唯一需要人核准的一步（付費，不可逆）</text>
+</svg>
+</div></body></html>
