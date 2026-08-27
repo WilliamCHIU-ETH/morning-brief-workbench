@@ -1,31 +1,37 @@
 # morning-brief-workbench
 
-**One Taiwan-stock morning-brief short video that passed review — together with the code that
-produced it, the golden sample it left behind, and the 28 executable gates that judge the next one.**
+**An agent working in this directory turns a Taiwan-stock morning brief into a finished 9:16
+short video in one pass** — script, structure, motion graphics, avatar, captions, render —
+with a single human gate: approving the paid avatar call.
 
-Every gate carries the failure that created it, so the thresholds are evidence rather than opinion.
-
-**Goal:** an agent working in this directory produces a finished video in one pass —
-script, structure, motion graphics, avatar, captions, render — with a single human gate:
-approving the paid avatar call.
+It ships with one video that already passed review, the code that produced it, and 28 executable
+gates that judge the next one. Every gate carries the failure that created it, so the thresholds
+are evidence rather than opinion.
 
 ---
 
-一支通過驗收的台股晨報 9:16 短影音，連同做出它的程式、它留下的黃金樣本，
-以及判斷下一支夠不夠好的 28 道門檻。
+## 這是什麼
 
-給下一支影片三件事：
+**agent 在這個目錄底下,把一篇台股晨報做成一支完整的 9:16 短影音——一口氣做完。**
+講稿、切段、動態圖卡、主播、字幕、組裝、渲染,中間只有**一道人工關卡**:
+核准付費的主播生成。
+
+台面上已經備好三樣:
 
 - **抄** — `fixtures/project-v4c/` 是 2026-08-26 實際出片那一支的完整可執行樣本
-- **跑** — 從講稿推導切段結構、挑 MG 版型、抽資料、產出 composition
-- **驗** — 28 道門檻說哪裡還不夠，每一道都附它是被什麼事故逼出來的
+- **跑** — 從講稿推導切段結構、挑 MG 版型、抽資料、產出 composition、渲染
+- **驗** — 28 道門檻說哪裡還不夠,**每一道都附它是被什麼事故逼出來的**
 
-**目標**：agent 在這個目錄底下**一口氣做完一支影片**——講稿、切段、動態圖卡、主播、
-字幕、組裝、渲染——中間只有一道人工關卡：**核准付費的主播生成**。
+一支成品長這樣:48.6 秒、1080×1920、9 格(主播與素材嚴格交替)、22 段字幕、
+素材覆蓋率 44%。
 
-這條線與 `marketing-video/app` 是**兩個等價、互不依賴的實作**。同一個目標、不同的取捨：
-那邊素材與工具齊全但耦合較多，這邊是拿一支通過驗收的成品重做的乾淨版。
-發現對方的方向或產出好就抄過去，不引用、不 symlink、不讀對方的路徑。
+## 與 marketing-video/app 的關係
+
+**兩個等價、互不依賴的實作。** 同一個目標、不同的取捨:那邊素材與工具齊全但耦合較多,
+這邊是拿一支通過驗收的成品重做的乾淨版。
+
+發現對方的方向或產出好就**抄**過去——不引用、不 symlink、不讀對方的路徑。
+兩邊各自持有一份素材、一份規格、一份金鑰。
 
 > **為什麼叫工作台。** 工具、材料、作業方法攤在同一張台面上，人或 agent 走過去就能開工，
 > 不必知道工廠其他地方有什麼。`contracts/` 那 28 道門檻是台面上的**量規**——
