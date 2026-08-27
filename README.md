@@ -1,31 +1,25 @@
 # morning-brief-workbench
 
-**The problem:** a daily Taiwan-stock morning-brief video is easy to make once and hard to make
-twice. The first version that actually worked took six iterations and four rounds of human
-review — and nothing in the pipeline knew *why* it was good, so the next one could quietly
-regress on any of a dozen axes.
+**要解決的問題**:每天一支台股晨報短影音——做一支不難,做穩很難。
+第一支真正對的花了六個版本、四輪人眼 audit,而產線本身不知道它為什麼好,
+下一支可能在十幾個維度裡的任何一個悄悄退化。
 
-**What this does:** it writes "good enough" down as 28 executable gates, keeps the one video that
-passed review as a runnable golden sample, and lets an agent walk up and produce the next one in
-a single pass. One human checkpoint: approving the paid avatar call.
+**這個工作台做的事**:把「什麼叫做得夠好」寫成 28 道可執行的門檻,
+把那支通過驗收的影片完整留成可執行的黃金樣本,讓 agent 走過來一口氣做完下一支。
+**中間只有一道人工關卡:核准付費的主播生成。**
 
 ![架構圖](docs/architecture.png)
 
 ---
 
-## 要解決的問題
+## 為什麼會做不穩
 
-**做一支不難,做穩很難。**
-
-2026-08-26 那支通過驗收的影片,是**六個版本、四輪人眼 audit** 的結果。被抓出來的是這些:
+2026-08-26 那支通過驗收的影片,被人眼抓出來的是這些:
 頂欄壓住主播的頭、標題板與 B-roll 同色、主播的手一直上下擺、字幕以句號結尾、
 B-roll 早於語音、第一格素材蓋掉問候。
 
 **而更早那一支是完全照規格做的,也通過了規格自己的交稿前檢查,卻被評「平鋪直述、沒有 hook」。**
 所以問題不在執行,在**規則本身沒有把「什麼叫好」寫下來**。
-
-結果是:同一個人做第二支,不知道哪裡會退化。
-
 ## 這個工作台怎麼解
 
 把三樣東西攤在同一張台面上,agent 走過來就能開工:
