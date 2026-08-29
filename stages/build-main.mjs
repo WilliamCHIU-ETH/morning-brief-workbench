@@ -49,7 +49,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { renderHeader } from '../template/header.mjs';
+// renderHeader 只在 topBar==='header' 時才需要，動態載入——
+// template/header.mjs 目前沒人寫過（topBar 預設 title-board，這條路徑從未被走過），
+// 靜態 import 會讓每一支不用 header 的片也在載入期就爆掉。真的選了 topBar=header
+// 才在下面 die() 出「這個檔案不存在」，而不是無論用不用都先炸。
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projIdx = process.argv.indexOf('--project');
@@ -78,7 +81,7 @@ const hexA = (hex, a) => {
 // ── 輸入 ───────────────────────────────────────────────────────────────────
 
 const L = readJson('template/layout.json');
-const ledger = readJson('segment-ledger-assembly.json');
+const ledger = readJson('segment-ledger.json');
 const captionsRaw = readJson('caption-ledger.json');
 const captions = Array.isArray(captionsRaw) ? captionsRaw : captionsRaw.captions;
 if (!Array.isArray(captions) || !captions.length) die('caption-ledger.json 沒有字幕');
@@ -160,7 +163,9 @@ function resolveRender(segment) {
     + '請在 segment-ledger.json 的該段加上 "render" 欄位指定唯一檔名');
 }
 
-const shots = segments.map((s, i) => {
+// 只有 mg 段需要 renders/ 裡的檔案——avatar 影片本身是貫穿全片的一條 clip（見下方
+// #avatar），presenter 段沒有素材蓋在上面，本來就不該去 renders/ 找對應檔案。
+const shots = segments.filter((s) => s.form === 'mg').map((s, i) => {
   const duration = typeof s.durationSec === 'number'
     ? s.durationSec : n4(s.endSec - s.startSec);
   if (!(duration > 0)) die(`段 ${s.id} 的長度不是正數`);
@@ -186,8 +191,17 @@ const T = L.tracks;
 const cap = L.caption;
 const inner = cap.inner;
 const tb = L.titleBoard;
-const hdr = topBar === 'header'
-  ? renderHeader({ date: title.date, label: title.label, layout: L }) : null;
+let hdr = null;
+if (topBar === 'header') {
+  let renderHeader;
+  try {
+    ({ renderHeader } = await import('../template/header.mjs'));
+  } catch {
+    die('topBar=header 需要 template/header.mjs（header 片段產生器），但這個檔案不存在。'
+      + '目前只有 title-board 這個 topBar 有實作。');
+  }
+  hdr = renderHeader({ date: title.date, label: title.label, layout: L });
+}
 
 const BW = L.brandWash;
 const brandCss = BW ? `
@@ -357,7 +371,8 @@ console.log(JSON.stringify({
   intro: useIntro ? introSec : false,
   bgm: useBgm,
   brollAudio,
-  segments: shots.length,
+  segments: segments.length,
+  mgShots: shots.length,
   captions: captions.length,
   durationSec: totalDur,
   renders: shots.map((s) => `${s.id}→${s.file}`),

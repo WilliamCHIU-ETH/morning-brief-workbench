@@ -61,6 +61,40 @@ for (const s of segs) {
   } else merged.push({ ...s });
 }
 
+// 3b) 2026-08-29：B-roll 切點落在字幕內部時，在切點處拆開。
+//
+// caption.snap-to-cuts 的方向是「每次場景切換都要有字幕跟著換」。步驟 1 會把 <MIN_CH 的分句
+// 併進下一句（實例：「指數是拉回來了，但大盤成交只有6,960億」，前半 7 字），segment ledger
+// 的切點就被埋在字幕中間；第 6 步的貼齊只動 start，救不回這種情況（projects/20260826-yadian-test
+// 量得 7/10）。拆開的兩半都必須守硬規則（≥4 字、≥MIN_DUR），守不住就不拆——
+// 例如 2 字的「聯茂、」掛在素材格尾端，那是 plan 層的問題，要回 plan-hints 解，不在這裡硬拆。
+{
+  const internalCuts = ledgerSeg.segments.slice(1).map((s) => s.startSec);
+  for (const c of internalCuts) {
+    // 切點站在停頓開頭（前一字語音結束）；找「前一字已結束、本字尚未開始」的那個字。
+    const k = T.findIndex((ch, i) => i > 0 && ch.start >= c - 1e-6 && T[i - 1].end <= c + 1e-6);
+    if (k < 0) continue;
+    const idx = merged.findIndex((s) => s.from < k && k <= s.to);
+    if (idx < 0) continue;
+    const s = merged[idx];
+    const left = { from: s.from, to: k - 1, reason: 'broll-cut' };
+    const right = { from: k, to: s.to, reason: s.reason };
+    const okLen = (x) => x.to - x.from + 1 >= 4;
+    const okDur = (x) => T[x.to].end - T[x.from].start >= MIN_DUR - 1e-6;
+    if (!okLen(right) || !okDur(right)) continue;
+    if (okLen(left) && okDur(left)) {
+      merged.splice(idx, 1, left, right);
+      continue;
+    }
+    // 左半太小站不住（「不過」「聯茂、」這種 2 字殘句）：併回前一條，讓字幕邊界仍落在切點上。
+    const prev = merged[idx - 1];
+    if (!prev || prev.to !== s.from - 1) continue;
+    if ((prev.to - prev.from + 1) + (left.to - left.from + 1) > HARD_CH) continue;
+    prev.to = left.to;
+    merged.splice(idx, 1, right);
+  }
+}
+
 // 4) 文字用原文切片（保留標點），時間用 char times
 const cutSet = new Set(ledgerSeg.segments.map((s) => s.startSec));
 const ledger = merged.map((s, idx) => {
