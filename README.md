@@ -4,7 +4,7 @@
 第一支真正對的花了六個版本、四輪人眼 audit,而產線本身不知道它為什麼好,
 下一支可能在十幾個維度裡的任何一個悄悄退化。
 
-**這個工作台做的事**:把「什麼叫做得夠好」寫成 28 道可執行的門檻,
+**這個工作台做的事**:把「什麼叫做得夠好」寫成 31 道可執行的門檻,
 把那支通過驗收的影片完整留成可執行的黃金樣本,讓 agent 走過來一口氣做完下一支。
 **中間只有一道人工關卡:核准付費的主播生成。**
 
@@ -32,7 +32,7 @@ B-roll 早於語音、第一格素材蓋掉問候。
 把三樣東西攤在同一張台面上,agent 走過來就能開工:
 
 - **規格** — `ROLE.md` 五條規則,每條附機制與**否證條件**。它是拿來改的,不是拿來遵守的。
-- **量規** — 28 道可執行門檻,**每一道都附「它是被什麼事故逼出來的」**。
+- **量規** — 31 道可執行門檻,**每一道都附「它是被什麼事故逼出來的」**。
   數字誰都能猜,失敗紀錄不能。
 - **樣本** — `fixtures/project-v4c/` 是那支通過驗收的完整可執行專案;
   另有 12 個**攻擊樣本**,是曾經騙過門檻的壞輸入,現在被測試鎖住。
@@ -50,7 +50,7 @@ B-roll 早於語音、第一格素材蓋掉問候。
 兩邊各自持有一份素材、一份規格、一份金鑰。
 
 > **為什麼叫工作台。** 工具、材料、作業方法攤在同一張台面上，人或 agent 走過去就能開工，
-> 不必知道工廠其他地方有什麼。`contracts/` 那 28 道門檻是台面上的**量規**——
+> 不必知道工廠其他地方有什麼。`contracts/` 那 31 道門檻是台面上的**量規**——
 > 量規本來就是工作台的標準配備，不是另一件東西。
 >
 > 原本叫 harness。軟體界的 harness 是 test harness，重心在「檢查」而不在「產出」，
@@ -86,11 +86,16 @@ npm install --no-package-lock && npm run demo
 接著：
 
 ```bash
-npm run gates -- --project fixtures/project-v4c    # 完整 28 道
+npm run gates -- --project fixtures/project-v4c    # 完整 31 道
 npm run plan  -- --project fixtures/project-v4c    # 從講稿推導切段
 npm run lint:script fixtures/project-v4c/script.txt # 講稿的機檢
+npm run status -- --project <dir>                   # 現在在哪裡、下一步做什麼
 npm test                                            # 32 個回歸測試
 ```
+
+`status` 是整條 artifact chain 的機器可讀 handoff；加 `--json` 可讓 agent 或後續 runner
+直接讀取。它不執行任何階段、不呼叫網路，也不會越過付費主播生成的唯一人工關卡。
+設計對照見 [`docs/ai-native-sdlc.md`](docs/ai-native-sdlc.md)。
 
 ## 契約，以及它是被什麼事故逼出來的
 
@@ -174,7 +179,7 @@ npm test                                            # 32 個回歸測試
 
 ```
 ROLE.md      講稿寫作規則：五條規則，每條附機制與否證條件
-contracts/   28 道門檻與主播生成的鎖定 payload；一處定義
+contracts/   31 道門檻與主播生成的鎖定 payload；一處定義
 stages/      13 個階段，各做一件事，吃 --project <dir>
 template/    版面契約（brandWash、程式畫開場卡、標題板、字幕）
 fixtures/
