@@ -32,6 +32,7 @@ export const CANONICAL = {
   layout: 'template/layout.json',
   mainConfig: 'main.config.json',
   brollProvenance: 'broll/broll-provenance.json',
+  shotPlan: 'shot-plan.json',
   gateReport: 'gate-report.json',
 };
 

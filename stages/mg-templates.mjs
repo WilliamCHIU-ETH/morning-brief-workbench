@@ -81,44 +81,74 @@ ${blk('m-dn', 'm-n2', b)}
     required: ['title', 'nodes', 'band'],
     defaults: { title: '傳導路徑', band: '' },
     validate(d) {
-      if (!Array.isArray(d.nodes) || d.nodes.length !== 3) {
-        return 'chain 需要正好 3 個 nodes（節點寬 300px，三節加兩個箭頭剛好 984px）';
+      if (!Array.isArray(d.nodes) || d.nodes.length < 1 || d.nodes.length > 3) {
+        return 'chain 需要 1～3 個 nodes（節點寬 300px、間距 42px，超過 3 個放不進 984px 舞台）';
       }
       return null;
     },
+    // N 個節點在 984px 舞台上置中：totalWidth = N*300 + (N-1)*42，
+    // 少於 3 節時不再用「—」佔位——那格是空的，一眼就看得出「這格資料沒抽到東西」。
+    // 1／2 節版沿用同一組留白幾何（見 ROLE.md「這份文件是拿來改的」精神：只改必要的量）。
     render(C, d) {
+      const N = d.nodes.length;
+      const totalWidth = N * 300 + (N - 1) * 42;
+      const margin = (984 - totalWidth) / 2;
+      const nodeLeft = (i) => margin + i * 342;
+      const nodeDelay = (i) => 0.34 + i * 0.52;
+      const lastEnter = nodeDelay(N - 1);
+      const highlightAt = lastEnter + 0.72;
+      const lastId = `d-n${N}`;
+      const lastTextId = `d-n${N}t`;
+
+      const nodeCss = Array.from({ length: N }, (_, i) =>
+        `#d-n${i + 1}{left:${nodeLeft(i)}px}`).join('\n');
+      const arrowCss = Array.from({ length: N - 1 }, (_, i) =>
+        `#d-a${i + 1}{left:${nodeLeft(i) + 306}px}`).join('\n');
       const css = `
 #d-title{left:0;top:0}
-.node{position:absolute;top:290px;width:300px;height:250px;border-radius:26px;background:${C.bg2};border:5px solid ${C.line};display:flex;align-items:center;justify-content:center;text-align:center;padding:0 20px}
-.node span{font-size:54px;font-weight:700;color:${C.sub};line-height:1.25}
-#d-n1{left:0}
-#d-n2{left:342px}
-#d-n3{left:684px}
+.node{position:absolute;top:290px;width:300px;height:250px;border-radius:26px;background:${C.bg2};border:5px solid ${C.line};display:flex;align-items:center;justify-content:center;text-align:center;padding:0 20px;overflow:hidden}
+.node span{display:block;min-width:0;max-width:260px;font-size:54px;font-weight:700;color:${C.sub};line-height:1.25;word-break:break-word}
+${nodeCss}
 .arw{position:absolute;top:400px;width:30px;height:30px;border-top:6px solid ${C.line};border-right:6px solid ${C.line};transform:rotate(45deg)}
-#d-a1{left:306px}
-#d-a2{left:648px}
+${arrowCss}
 #d-band{position:absolute;left:0;top:660px;width:984px;height:150px;border-radius:26px;background:${C.upFill};display:flex;align-items:center;justify-content:center}
 #d-band span{font-size:64px;font-weight:700}
 `;
+      const nodeBody = d.nodes.map((n, i) => {
+        const id = `d-n${i + 1}`;
+        const isLast = i === N - 1;
+        const span = isLast ? `<span id="${lastTextId}">${n}</span>` : `<span>${n}</span>`;
+        return `      <div class="node" id="${id}">${span}</div>`;
+      }).join('\n');
+      const arrowBody = Array.from({ length: N - 1 }, (_, i) =>
+        `      <div class="arw" id="d-a${i + 1}"></div>`).join('\n');
+      // 依原文順序交錯節點與箭頭（node, arw, node, arw, node…）。
+      const bodyParts = [];
+      for (let i = 0; i < N; i++) {
+        bodyParts.push(nodeBody.split('\n')[i]);
+        if (i < N - 1) bodyParts.push(arrowBody.split('\n')[i]);
+      }
       const body = `      <div class="t h1" id="d-title">${d.title}</div>
-      <div class="node" id="d-n1"><span>${d.nodes[0]}</span></div>
-      <div class="arw" id="d-a1"></div>
-      <div class="node" id="d-n2"><span>${d.nodes[1]}</span></div>
-      <div class="arw" id="d-a2"></div>
-      <div class="node" id="d-n3"><span id="d-n3t">${d.nodes[2]}</span></div>
+${bodyParts.join('\n')}
       ${d.band ? `<div id="d-band"><span>${d.band}</span></div>` : ''}
 `;
+      const nodeTl = Array.from({ length: N }, (_, i) =>
+        `  tl.fromTo('#d-n${i + 1}',{x:-28,autoAlpha:0},{x:0,autoAlpha:1,duration:.36,ease:'power3.out'},${nodeDelay(i).toFixed(2)});`).join('\n');
+      const arrowTl = Array.from({ length: N - 1 }, (_, i) =>
+        `  tl.fromTo('#d-a${i + 1}',{autoAlpha:0},{autoAlpha:1,duration:.24,ease:'power2.out'},${(nodeDelay(i) + 0.32).toFixed(2)});`).join('\n');
+      const allIds = [
+        'd-title',
+        ...Array.from({ length: N }, (_, i) => `d-n${i + 1}`),
+        ...Array.from({ length: N - 1 }, (_, i) => `d-a${i + 1}`),
+      ];
       const tl = (dur) => `
   tl.fromTo('#d-title',{x:-36,autoAlpha:0},{x:0,autoAlpha:1,duration:.38,ease:'power3.out'},0);
-  tl.fromTo('#d-n1',{x:-28,autoAlpha:0},{x:0,autoAlpha:1,duration:.36,ease:'power3.out'},.34);
-  tl.fromTo('#d-a1',{autoAlpha:0},{autoAlpha:1,duration:.24,ease:'power2.out'},.66);
-  tl.fromTo('#d-n2',{x:-28,autoAlpha:0},{x:0,autoAlpha:1,duration:.36,ease:'power3.out'},.86);
-  tl.fromTo('#d-a2',{autoAlpha:0},{autoAlpha:1,duration:.24,ease:'power2.out'},1.18);
-  tl.fromTo('#d-n3',{x:-28,autoAlpha:0},{x:0,autoAlpha:1,duration:.36,ease:'power3.out'},1.38);
-  tl.to('#d-n3',{borderColor:'${C.hi}',duration:.34,ease:'power2.out'},2.1);
-  tl.to('#d-n3t',{color:'${C.hi}',duration:.34,ease:'power2.out'},2.1);
-${d.band ? `  tl.fromTo('#d-band',{y:40,autoAlpha:0},{y:0,autoAlpha:1,duration:.42,ease:'power3.out'},2.6);` : ''}
-  tl.to('#d-title,#d-n1,#d-a1,#d-n2,#d-a2,#d-n3${d.band ? ',#d-band' : ''}',{autoAlpha:0,duration:.45,ease:'power2.in'},${(dur - 0.5).toFixed(2)});
+${nodeTl}
+${arrowTl}
+  tl.to('#${lastId}',{borderColor:'${C.hi}',duration:.34,ease:'power2.out'},${highlightAt.toFixed(2)});
+  tl.to('#${lastTextId}',{color:'${C.hi}',duration:.34,ease:'power2.out'},${highlightAt.toFixed(2)});
+${d.band ? `  tl.fromTo('#d-band',{y:40,autoAlpha:0},{y:0,autoAlpha:1,duration:.42,ease:'power3.out'},${(highlightAt + 0.5).toFixed(2)});` : ''}
+  tl.to('${allIds.map((id) => `#${id}`).join(',')}${d.band ? ',#d-band' : ''}',{autoAlpha:0,duration:.45,ease:'power2.in'},${(dur - 0.5).toFixed(2)});
 `;
       return { css, body, tl };
     },

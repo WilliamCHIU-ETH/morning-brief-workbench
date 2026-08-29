@@ -22,6 +22,10 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolveProject, readJson, writeJson } from './lib/project.mjs';
 import { TEMPLATES } from './mg-templates.mjs';
+import { SHOT, imageSize } from './shot-template.mjs';
+
+// 2026-08-27 會議：素材格全面改實機截圖。shot 版型放獨立檔（另一個 session 正在改 mg-templates.mjs）。
+const ALL = { ...TEMPLATES, shot: SHOT };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -119,7 +123,7 @@ const br = (s, at = 5) => (s.length > at + 2 ? `${s.slice(0, at)}<br />${s.slice
 const stripLead = (s) => s.replace(/^(所以|那|而|不過|但)/, '');
 
 function buildData(tid, f, slotText) {
-  const t = TEMPLATES[tid];
+  const t = ALL[tid];
   const d = { ...t.defaults };
   if (tid === 'stat-compare') {
     d.title = f.clauses[0]?.match(TIME_PREFIX) ? `${f.clauses[0].match(TIME_PREFIX)[0]}盤勢` : d.title;
@@ -162,8 +166,11 @@ function buildData(tid, f, slotText) {
       picked[picked.length - 1] = last.slice(0, cut);
       d.band = last.slice(cut);
     }
-    d.nodes = picked.map((s) => br(s.replace(/^(公司的|該公司|本公司)/u, ''), 5));
-    while (d.nodes.length < 3) d.nodes.push('—');
+    // 不手動插 <br>：hyperframes-core 規則明講強制斷行會跟自然換行打架、疊字。
+    // 節點框讓 CSS（max-width + word-break）自己換行。
+    // 不足三節就照實給 1～2 個：mg-templates.mjs 的 chain 版型會置中重排，
+    // 不再用「—」佔位——空格子一眼就看得出「這格沒抽到東西」，比留白更差。
+    d.nodes = picked.map((s) => s.replace(/^(公司的|該公司|本公司)/u, ''));
     // band 不能等於任何一個節點。fallback 取最後一個分句時，那個分句往往就是
     // 第三個節點本身，結果同一句話在畫面上出現兩次。
     if (!d.band) {
@@ -178,6 +185,23 @@ function buildData(tid, f, slotText) {
 const plan = readJson(P, 'segmentPlan');
 const overrides = fs.existsSync(path.join(P.root, 'mg-overrides.json'))
   ? JSON.parse(fs.readFileSync(path.join(P.root, 'mg-overrides.json'), 'utf8')) : {};
+
+// 截圖計畫（capture-shots.mjs 寫出）。某格在這裡有 entry 就用 shot 版型放實機截圖，
+// 沒有的格才落到抽數字選版型。截圖優先於 overrides：那是會議裁定的方向，不是逐格偏好。
+const hasShotPlan = fs.existsSync(P.path('shotPlan'));
+const shotSlots = hasShotPlan ? (readJson(P, 'shotPlan').slots ?? {}) : {};
+function shotData(id) {
+  const e = shotSlots[id];
+  const abs = e.image ? path.join(P.root, e.image) : null;
+  const dims = abs && fs.existsSync(abs) ? imageSize(abs) : { w: 0, h: 0 };
+  const d = { cropTop: 0, ...e, imageW: dims.w, imageH: dims.h };
+  if (e.second?.image) {
+    const abs2 = path.join(P.root, e.second.image);
+    const dims2 = fs.existsSync(abs2) ? imageSize(abs2) : { w: 0, h: 0 };
+    d.second = { cropTop: 0, ...e.second, imageW: dims2.w, imageH: dims2.h };
+  }
+  return d;
+}
 
 // 時長：有 ledger 用真值，否則用 plan 的估計上緣（比較保守）
 let ledger = null;
@@ -197,13 +221,19 @@ for (const s of plan) {
   cursor = o.end + 1;
   if (s.form !== 'mg') continue;
   const f = extract(o.text);
-  const pick = overrides[s.id]?.template
-    ? { id: overrides[s.id].template, why: 'mg-overrides.json 指定' }
-    : pickTemplate(f);
-  const t = TEMPLATES[pick.id];
+  const pick = shotSlots[s.id]
+    ? { id: 'shot', why: `shot-plan.json 有截圖（${shotSlots[s.id].page ?? shotSlots[s.id].image}）` }
+    : overrides[s.id]?.template
+      ? { id: overrides[s.id].template, why: 'mg-overrides.json 指定' }
+      : pickTemplate(f);
+  const t = ALL[pick.id];
   if (!t) { console.error(`格 ${s.id}：未知版型 ${pick.id}`); process.exit(1); }
-  const data = { ...buildData(pick.id, f, o.text), ...(overrides[s.id]?.data ?? {}) };
-  const err = t.validate(data);
+  const data = pick.id === 'shot'
+    ? shotData(s.id)
+    : { ...buildData(pick.id, f, o.text), ...(overrides[s.id]?.data ?? {}) };
+  const err = pick.id === 'shot' && !(data.image && fs.existsSync(path.join(P.root, data.image)))
+    ? `截圖檔不存在：${data.image || '（shot-plan 沒填 image）'}`
+    : t.validate(data);
   const dur = durOf(s);
   rows.push({
     id: s.id, template: pick.id, why: pick.why, durationSec: Number(dur.sec.toFixed(2)),
@@ -232,13 +262,13 @@ if (WRITE) {
   const dir = path.join(P.root, 'compositions');
   fs.mkdirSync(dir, { recursive: true });
   for (const r of rows) {
-    const t = TEMPLATES[r.template];
+    const t = ALL[r.template];
     const { css, body: bodyHtml, tl } = t.render(C, r.data);
     const html = shell(`br${r.id}`, r.durationSec, css, bodyHtml, tl(r.durationSec), t.shiftY);
     fs.writeFileSync(path.join(dir, `${r.id}-${r.template}.html`), html);
   }
   writeJson(P, 'mg-plan.json', { generatedFrom: P.rel('segmentPlan'), slots: rows },
-    { inputs: ['script', 'segmentPlan'] });
+    { inputs: ['script', 'segmentPlan', ...(hasShotPlan ? ['shotPlan'] : [])] });
   console.log('');
   console.log(`已寫出 ${rows.length} 個 composition 到 compositions/，計畫在 mg-plan.json`);
 }
