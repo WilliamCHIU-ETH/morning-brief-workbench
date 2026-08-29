@@ -62,6 +62,11 @@ execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', src,
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
   '-c:a', 'aac', '-b:a', '192k', dst], { stdio: ['ignore', 'inherit', 'inherit'] });
 
+const publicVideo = path.join(P.root, 'public', 'input-video.mp4');
+fs.mkdirSync(path.dirname(publicVideo), { recursive: true });
+fs.copyFileSync(dst, publicVideo);
+console.log(`複製 ${P.rel('avatarSpeeded')} → public/input-video.mp4`);
+
 const outDur = Number(probe(dst, 'format=duration', false));
 const realSpeed = inDur / outDur;
 console.log(`輸出 ${outDur.toFixed(2)}s，實際倍率 ${realSpeed.toFixed(3)}`);

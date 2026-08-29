@@ -61,7 +61,38 @@ function stageOne(file) {
   return dir;
 }
 
+function preflightSlots() {
+  const required = ['hyperframes.json', 'assets/gsap.min.js', 'template/layout.json'];
+  const missing = required.filter((rel) => !fs.existsSync(path.join(P.root, rel)));
+  if (missing.length) {
+    console.error(
+      `素材格渲染缺少專案骨架：\n  ${missing.join('\n  ')}\n` +
+      'HyperFrames 的設定、動畫 runtime 或版位不完整，繼續會在渲染途中失敗。\n' +
+      `下一步：node stages/init-project.mjs --project ${P.root}`,
+    );
+    process.exit(1);
+  }
+
+  const ledger = P.path('segmentLedger');
+  const mgPlan = path.join(P.root, 'mg-plan.json');
+  if (fs.existsSync(ledger) && fs.existsSync(mgPlan)) {
+    const plan = JSON.parse(fs.readFileSync(mgPlan, 'utf8'));
+    const slots = Array.isArray(plan) ? plan : (plan.slots ?? null);
+    if (slots === null) {
+      console.warn('警告：mg-plan.json 沒有 slots 欄位，無法判斷 composition 是否過期');
+    } else if (slots.some((slot) => slot.durationFrom === 'plan-estimate')) {
+      console.error(
+        'ledger 已存在但 composition 用的還是估計時長。mg-plan.json 仍有 durationFrom="plan-estimate"，' +
+        '繼續渲染會讓素材格與主播真實時間錯位。\n' +
+        `下一步：node stages/plan-mg.mjs --project ${P.root} --write`,
+      );
+      process.exit(1);
+    }
+  }
+}
+
 if (cmd === 'slots' || cmd === 'all') {
+  preflightSlots();
   const dir = path.join(P.root, 'compositions');
   const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.html')) : [];
   if (!files.length) { console.error('compositions/ 裡沒有 html。先跑 plan-mg.mjs --write。'); process.exit(1); }
