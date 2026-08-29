@@ -8,6 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+const GATE_COUNT = JSON.parse((await import('node:fs')).default.readFileSync(new URL('../contracts/acceptance.json', import.meta.url), 'utf8')).gates.length;
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const run = (project) => {
@@ -39,7 +40,7 @@ console.log('那一支攻擊樣本的真面目：片長 300 秒（目標 42–55
 console.log('字幕 9 張每張停 33 秒、B-roll 四格是同一張 1×1 黑 PNG、payload 是 16:9 480p。');
 console.log('');
 console.log('接著看：');
-console.log('  npm run gates -- --project fixtures/project-v4c     完整 28 道');
+console.log(`  npm run gates -- --project fixtures/project-v4c     完整 ${GATE_COUNT} 道`);
 console.log('  npm run plan  -- --project fixtures/project-v4c     從講稿推導切段');
 console.log('  cat contracts/acceptance.json                       每道門檻與它的反例');
 console.log('');

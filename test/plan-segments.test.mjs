@@ -2,8 +2,8 @@
  * 規劃器的回歸測試。
  *
  * 核心斷言：結構約束把 2^28 種分割收斂到兩百多種，但**不決定編輯意圖**；
- * 一個兩分句的 hint 就把 V4c 釘成唯一解。這兩件都要鎖住——
- * 前者是規劃器的價值，後者是它的界線。
+ * hint 負責編輯指定，素材格上限則負責讓過長結構做不出來。硬性約束有可能碰巧選到
+ * 與 hint 相同的邊界，因此測試鎖的是合法性與上限，不把「形狀必須不同」誤當成意圖證據。
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,6 +16,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PLANNER = path.join(ROOT, 'stages', 'plan-segments.mjs');
 const FIX = path.join(ROOT, 'fixtures', 'project-v4c');
 const HINTS = path.join(FIX, 'plan-hints.json');
+const acceptance = JSON.parse(fs.readFileSync(path.join(ROOT, 'contracts', 'acceptance.json'), 'utf8'));
+const threshold = (id) => acceptance.gates.find((g) => g.id === id).threshold;
+const MAX_MATERIAL_SLOT = threshold('plan.material-slot-length').maxSec;
+const MAX_COVERAGE_PERCENT = threshold('ledger.coverage').maxCoverage * 100;
 
 function plan(hints) {
   const saved = fs.existsSync(HINTS) ? fs.readFileSync(HINTS, 'utf8') : null;
@@ -23,8 +27,8 @@ function plan(hints) {
   else if (hints !== undefined) fs.writeFileSync(HINTS, JSON.stringify(hints));
   try {
     const out = execFileSync('node', [PLANNER, '--project', FIX], { encoding: 'utf8' });
-    const slots = [...out.matchAll(/^(\d\d) (presenter|mg)\s+(\d+)-(\d+)/gm)]
-      .map((m) => ({ id: m[1], form: m[2], from: Number(m[3]), to: Number(m[4]) }));
+    const slots = [...out.matchAll(/^(\d\d) (presenter|mg)\s+(\d+)-(\d+)\s+\d+\s+[\d.]+–([\d.]+)/gm)]
+      .map((m) => ({ id: m[1], form: m[2], from: Number(m[3]), to: Number(m[4]), estUpper: Number(m[5]) }));
     const feasible = Number(out.match(/合法分割數：語速下緣 (\d+)/)?.[1]);
     const coverage = Number(out.match(/覆蓋率 ([\d.]+)%/)?.[1]);
     const robust = /語速兩端一致：是/.test(out);
@@ -36,15 +40,15 @@ function plan(hints) {
 }
 const shape = (slots) => slots.map((s) => `${s.form[0].toUpperCase()}${s.from}-${s.to}`).join(' ');
 
-test('沒有 hint 時仍產出結構合法的計畫，但不是 V4c 的那個', () => {
+test('沒有 hint 時仍產出結構合法、素材格不超長的計畫', () => {
   const r = plan(null);
   assert.equal(r.slots.length, 9);
   assert.equal(r.slots[0].form, 'presenter');
   assert.equal(r.slots.at(-1).form, 'presenter');
-  assert.ok(r.coverage <= 50, `覆蓋率 ${r.coverage}% 必須在門檻內`);
+  assert.ok(r.coverage <= MAX_COVERAGE_PERCENT, `覆蓋率 ${r.coverage}% 必須在門檻內`);
   assert.ok(r.feasible > 100, `合法分割應該有上百種，實得 ${r.feasible}`);
-  // 規劃器會把「那市場選了什麼」放上圖表——結構約束管不到的編輯判斷
-  assert.notEqual(shape(r.slots), shape(plan(undefined).slots));
+  assert.ok(r.slots.filter((s) => s.form === 'mg').every((s) => s.estUpper <= MAX_MATERIAL_SLOT),
+    `素材格上緣必須都不超過 ${MAX_MATERIAL_SLOT}s`);
 });
 
 test('一個兩分句的 hint 就把 V4c 釘成唯一解，9 格 form 與 anchor 全同', () => {

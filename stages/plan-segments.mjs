@@ -14,7 +14,7 @@
  *
  *  1. **讓不合法的結構做不出來。** 分句是唯一的切點單位（V4c 的 9 個切點全部落在分句邊界），
  *     在此之上用 DP 找出滿足 acceptance.json 全部門檻的分割：嚴格 P／M 交替、首末為
- *     presenter、最短主播段、最長連續素材、覆蓋率上限、問候不得被蓋。
+ *     presenter、最短主播段、最長連續素材、素材格估計長度、覆蓋率上限、問候不得被蓋。
  *  2. **在付費之前就能判斷可行性。** 沒有 ASR 時用校準語速估時長，並且在語速區間的兩個
  *     端點都驗一次——只在區間中點成立的計畫是脆的，真音檔一到就會破。
  *
@@ -34,13 +34,28 @@ const { getBodyAfterVoice, cleanBodyWithIndex } = require(path.join(here, 'scrip
 
 const acceptance = JSON.parse(fs.readFileSync(path.join(ROOT, 'contracts/acceptance.json'), 'utf8'));
 const th = (id) => acceptance.gates.find((g) => g.id === id)?.threshold ?? {};
-const MIN_PRESENTER = th('ledger.min-presenter').minPresenterSec ?? 3.0;
-const MAX_MATERIAL_RUN = th('ledger.max-material-run').maxMaterialRunSec ?? 6.5;
-const MAX_COVERAGE = th('ledger.coverage').maxCoverage ?? 0.5;
-const TARGET_COVERAGE = acceptance.gates.find((g) => g.id === 'ledger.coverage')?.observed ?? 0.44;
+// 生成常數讀 acceptance.planning（瞄準黃金樣本的中心），不讀 gate 的驗收包絡。
+// 2026-08-29：gate 依對標片放寬後 planner 跟著讀，黃金樣本的 plan 形狀就變了——generator 與 gate 刻意分開。
+const PL = acceptance.planning;
+if (!PL) throw new Error('acceptance.json 缺 planning 區塊（plan-segments 的生成常數）');
+const MIN_PRESENTER = PL.minPresenterSec;
+const MAX_MATERIAL_RUN = PL.maxMaterialRunSec;
+const MAX_MATERIAL_SLOT = th('plan.material-slot-length').maxSec;   // 硬上限，生成與驗收同一個數
+const MAX_COVERAGE = PL.maxCoverage;
+const TARGET_COVERAGE = PL.targetCoverage;
+for (const [k, v] of Object.entries({ MIN_PRESENTER, MAX_MATERIAL_RUN, MAX_COVERAGE, TARGET_COVERAGE })) {
+  if (!Number.isFinite(v) || v <= 0) throw new Error(`acceptance.json planning 的 ${k} 必須是正數`);
+}
 
-// 語速區間：計畫必須在兩個端點都合法。從契約讀，不寫死。
+// 語速區間與素材格上限都從契約讀，不在程式裡重複門檻數字。
 const RATE = acceptance.calibration.rateBand;
+if (!Number.isFinite(MAX_MATERIAL_SLOT) || MAX_MATERIAL_SLOT <= 0) {
+  throw new Error('acceptance.json 的 plan.material-slot-length.threshold.maxSec 必須是正數');
+}
+const estimateBand = (chars) => [
+  Number((chars / RATE[1]).toFixed(2)),
+  Number((chars / RATE[0]).toFixed(2)),
+];
 
 let P;
 try { P = resolveProject(); } catch (e) {
@@ -192,12 +207,18 @@ function solve(rate, wantAlternatives = 1) {
         if (!cell) continue;
         const nextForm = 1 - form;                    // 嚴格交替
         let dur = 0;
+        let chars = 0;
         for (let j = i; j < n; j++) {
           dur += D[j];
+          chars += clauses[j].chars;
           const seg = clauses.slice(i, j + 1);
           if (nextForm === 1 && seg.some((c) => forcedPresenter.has(c.idx))) break;
           if (nextForm === 0 && seg.some((c) => forcedMaterial.has(c.idx))) break;
           if (nextForm === 1 && dur > MAX_MATERIAL_RUN + 1e-9) break;
+          // 在 DP transition 直接禁止「多分句且超長」的 mg，而不是事後硬切：break 之後
+          // 剩餘分句只能經下一個 presenter run 承接，因此仍沿用既有成本函數、覆蓋率狀態與
+          // 嚴格交替，不會造出相鄰 mg 或空 anchor。單一分句沒有合法內部切點，先放行並於輸出警告。
+          if (nextForm === 1 && j > i && estimateBand(chars)[1] > MAX_MATERIAL_SLOT) break;
           if (nextForm === 0 && dur < MIN_PRESENTER - 1e-9) continue;
           const nb = nextForm === 1 ? b + Math.round(dur / BUCKET) : b;
           if (nb >= nB) continue;
@@ -252,8 +273,10 @@ if (!lo.plans.length || !hi.plans.length) {
 
 const chosen = lo.plans.find((p) => hiKeys.has(key(p))) ?? lo.plans[0];
 const mgCount = chosen.runs.filter((r) => r.form === 'mg').length;
-if (mgCount < 3) {
-  console.error(`只規劃出 ${mgCount} 個素材格（下界 3）。覆蓋率 ${(chosen.coverage * 100).toFixed(1)}%。`);
+const MIN_MATERIAL_SLOTS = th('plan.material-floor').minMaterialSlots;   // 硬下界，與 gate 同一個數
+if (!Number.isFinite(MIN_MATERIAL_SLOTS)) throw new Error('acceptance.json 缺 plan.material-floor.threshold.minMaterialSlots');
+if (mgCount < MIN_MATERIAL_SLOTS) {
+  console.error(`只規劃出 ${mgCount} 個素材格（下界 ${MIN_MATERIAL_SLOTS}）。覆蓋率 ${(chosen.coverage * 100).toFixed(1)}%。`);
   console.error('講稿太短或硬性主播分句佔比過高，撐不出晨報該有的素材節奏。先改講稿。');
   process.exit(1);
 }
@@ -274,7 +297,7 @@ const plan = chosen.runs.map((r, k) => {
     derivation: {
       clauses: [r.from, r.to],
       chars: anchor.length,
-      estSec: [Number((anchor.length / RATE[1]).toFixed(2)), Number((anchor.length / RATE[0]).toFixed(2))],
+      estSec: estimateBand(anchor.length),
       features: [...new Set(clauses.slice(r.from, r.to + 1).flatMap((c) => c.features))],
       forced: clauses.slice(r.from, r.to + 1).some((c) => forcedPresenter.has(c.idx)) ? 'presenter'
         : clauses.slice(r.from, r.to + 1).some((c) => forcedMaterial.has(c.idx)) ? 'material-hint' : null,
@@ -295,6 +318,14 @@ for (const s of plan) {
 if (!robust) {
   console.log('');
   console.log('注意：這個分割在語速區間兩端不一致，真音檔到位後可能需要重算。');
+}
+const indivisible = plan.filter((s) => s.form === 'mg'
+  && s.derivation.clauses[0] === s.derivation.clauses[1]
+  && s.derivation.estSec[1] > MAX_MATERIAL_SLOT);
+if (indivisible.length) {
+  console.log('');
+  console.log(`警告：素材格 ${indivisible.map((s) => `${s.id}（${s.derivation.estSec[1].toFixed(1)}s）`).join('、')}` +
+    `的單一分句超過 ${MAX_MATERIAL_SLOT}s 上限；分句內沒有合法切點，已放行。`);
 }
 const missing = plan.filter((s) => s.form === 'mg' && !s.responsibility);
 if (missing.length) {

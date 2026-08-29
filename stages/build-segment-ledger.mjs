@@ -48,7 +48,7 @@ const out = { durationSec: total, visualForm: 'fullframe', coverage: {
   materialPct: +(((cover.mg + cover.device) / total) * 100).toFixed(1),
   presenterPct: +((cover.presenter / total) * 100).toFixed(1),
 }, segments };
-writeJson(P, 'segmentLedger', out, { inputs: ['charTimes', 'segmentPlan'] });
+writeJson(P, 'segmentLedger', out, { inputs: ['charTimes', 'segmentPlan', 'script'] });
 
 console.log('id form      start    end     秒    責任');
 for (const s of segments) {

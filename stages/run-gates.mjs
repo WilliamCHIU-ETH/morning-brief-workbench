@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { resolveProject, sha256File, requireFresh } from './lib/project.mjs';
+import { imageSize } from './shot-template.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
@@ -307,6 +308,26 @@ gate('plan.material-floor', ['segmentPlan', 'script'], (th2) => {
   return { ok, measured: `${mg.length} 格／${(cov * 100).toFixed(1)}%（以字數計）` };
 });
 
+gate('plan.material-slot-length', ['segmentPlan'], (th2) => {
+  const plan = load('segmentPlan');
+  const mg = plan.filter((s) => MATERIAL.has(s.form));
+  if (!mg.length) return { ok: false, measured: '0 個素材格', note: '見 plan.material-floor' };
+  const maxSec = Number(th2.maxSec);
+  const rateFloor = Number(acceptance.calibration?.rateBand?.[0]);
+  if (!Number.isFinite(maxSec) || !Number.isFinite(rateFloor) || rateFloor <= 0) {
+    throw new Error('acceptance.json 缺有效的 maxSec 或 calibration.rateBand 下緣');
+  }
+  const measured = mg.map((s) => {
+    // 不信任 plan 自己宣告的 estSec：用 anchor 與同一份契約的語速下緣重算上緣。
+    // 這也讓早於 derivation 欄位的黃金樣本 V4c 可驗，不必為新 gate 修改 fixture。
+    const upper = Number((String(s.anchor ?? '').length / rateFloor).toFixed(2));
+    return { id: s.id, upper };
+  });
+  const longest = measured.reduce((a2, s) => (s.upper > a2.upper ? s : a2));
+  return { ok: longest.upper <= maxSec,
+    measured: `最長 ${longest.upper.toFixed(1)}s／上限 ${maxSec}s（格 ${longest.id}）` };
+});
+
 gate('plan.responsibility-present', ['segmentPlan'], () => {
   const plan = load('segmentPlan');
   const mg = plan.filter((s) => MATERIAL.has(s.form));
@@ -419,6 +440,68 @@ gate('mg.prompt-provenance', ['brollProvenance'], () => {
   }
   return { ok: !bad.length, measured: bad.length ? bad.join('、') : `${slots.length} 格全部配對且互不相同` };
 });
+
+// ── 截圖層：2026-08-27 會議裁定素材格改實機截圖（docs/reference-reels.md）────────
+gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
+  const plan = load('segmentPlan');
+  const slots = load('shotPlan').slots ?? {};
+  const mg = plan.filter((s) => MATERIAL.has(s.form));
+  if (!mg.length) return { ok: false, measured: '0 個素材格', note: '見 plan.material-floor' };
+  const bad = [];
+  for (const s of mg) {
+    const e = slots[s.id];
+    if (!e) { bad.push(`${s.id}（shot-plan 沒有這格）`); continue; }
+    const abs = e.image ? path.join(P.root, e.image) : null;
+    if (!abs || !fs.existsSync(abs)) { bad.push(`${s.id}（截圖檔不存在）`); continue; }
+    // 沒有 focus ＝ 這句話沒有可指的數字或列表。對標片 16 個素材格全部有；
+    // 沒有可指之物的句子該留在主播臉上，不是放一張無關的截圖。
+    if (!e.focus) { bad.push(`${s.id}（沒有 focus）`); continue; }
+    const { w, h } = imageSize(abs);
+    const f = e.focus;
+    const inside = f.w > 0 && f.h > 0 && f.x >= 0 && f.y >= 0 && f.x + f.w <= w && f.y + f.h <= h;
+    if (!inside) bad.push(`${s.id}（focus 超出圖外 ${w}×${h}）`);
+  }
+  return { ok: !bad.length, measured: bad.length ? bad.join('、') : `${mg.length}/${mg.length} 格都有截圖與 focus` };
+});
+
+// 測試模式：拿過去的講稿測試產線時，截圖日期與講稿刻意不對齊（App 頁首永遠是今天）。
+// capture-shots.mjs --test-mode 會在 shot-plan.json 寫 mode=test；這裡記「略過」而不是「未通過」，
+// 其餘 gate 照常。這是使用者 2026-08-28 的裁定；正式出片不得帶 --test-mode。
+{
+  const spec = acceptance.gates.find((g) => g.id === 'shot.captured-same-day');
+  let testMode = false;
+  try { testMode = has('shotPlan') && JSON.parse(fs.readFileSync(P.path('shotPlan'), 'utf8')).mode === 'test'; } catch { /* 讀不到就照常驗 */ }
+  // 測試模式不能只靠 shot-plan 自報（reviewer 2026-08-29）：專案目錄名必須以 -test 結尾，
+  // 這樣每一條路徑都寫著「測試」，不會有人把它當正式片發出去。
+  const isTestDir = /-test$/u.test(path.basename(P.root));
+  if (testMode && !isTestDir) {
+    record('shot.captured-same-day', 'failed', null,
+      { rule: spec?.rule, note: `shot-plan.json 宣告 mode=test，但專案目錄「${path.basename(P.root)}」不是以 -test 結尾。測試專案的目錄名必須以 -test 結尾（例：20260826-yadian-test）；正式專案不得帶 --test-mode。` });
+  } else if (testMode && !JSON.parse(fs.readFileSync(P.path('shotPlan'), 'utf8')).capturedAt) {
+    record('shot.captured-same-day', 'failed', null,
+      { rule: spec?.rule, note: '測試模式也必須有 capturedAt（capture-shots.mjs 會寫）；手放的 shot-plan 沒有時間戳，不能靠 mode=test 混過。' });
+  } else if (testMode) {
+    record('shot.captured-same-day', 'skipped', null,
+      { rule: spec?.rule, note: '測試模式（shot-plan.json mode=test，目錄名 -test）：截圖日期與講稿刻意不對齊，頁首數字會對不上旁白。正式出片不得帶 --test-mode。' });
+  } else {
+  gate('shot.captured-same-day', ['script', 'shotPlan'], () => {
+    const sp = load('shotPlan');
+    const m = fs.readFileSync(P.path('script'), 'utf8').match(/^(\d{2})\/(\d{2})\s*台股晨報/m);
+    if (!m) return { ok: false, measured: '講稿標題解析不出 MM/DD' };
+    const cap = sp.capturedAt ? new Date(sp.capturedAt) : null;
+    if (!cap || Number.isNaN(cap.getTime())) return { ok: false, measured: 'shot-plan.json 缺 capturedAt（capture-shots.mjs 會寫；手放的截圖沒有）' };
+    // 晨報 D 講的是 D-1 的收盤。App 頁首永遠是「現在」，所以截圖只能在 D-1 13:30 ～ D 09:00（台北）之間拍，
+    // 否則頁首數字與講稿對不上。年份取 capturedAt 的年，講稿標題不帶年。
+    const tpe = new Date(cap.getTime() + 8 * 3600e3);
+    const D = Date.UTC(tpe.getUTCFullYear(), Number(m[1]) - 1, Number(m[2]));
+    const start = new Date(D - 24 * 3600e3 + (13 * 60 + 30) * 60e3);
+    const end = new Date(D + 9 * 3600e3);
+    const fmt = (d) => d.toISOString().slice(0, 16).replace('T', ' ');
+    return { ok: tpe >= start && tpe <= end,
+      measured: `截於 ${fmt(tpe)} 台北；窗口 ${fmt(start)} ～ ${fmt(end)}` };
+  });
+  }
+}
 
 // ── artifact 的 provenance 必須齊全 ────────────────────────────────────────
 {

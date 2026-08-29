@@ -1,5 +1,5 @@
 {
-  "$note": "台股晨報 9:16 成片的自動驗收門檻。observed 欄位是 V4c 實測值（2026-08-26，project-20260825-120500-dingyuan-0821），threshold 是據此定的門檻。改門檻必須附上新的實測來源。",
+  "$note": "台股晨報 9:16 成片的自動驗收門檻。observed 欄位是 V4c 實測值（2026-08-26，project-20260825-120500-dingyuan-0821），threshold 是據此定的門檻。改門檻必須附上新的實測來源。 2026-08-28 起，對標物改為 IG cmchipk 的「大盤小報」「三大法人」（會議 2026-08-27 裁定）；標了 referenceReels 的門檻其數字來自 docs/reference-reels.md。",
   "reference": {
     "project": "project-20260825-120500-dingyuan-0821",
     "revision": "V4c",
@@ -7,7 +7,16 @@
     "visualForm": "fullframe",
     "slots": 9,
     "cleanChars": 236,
-    "captions": 22
+    "captions": 22,
+    "referenceReels": {
+      "source": "docs/reference-reels.md",
+      "reels": [
+        "DcdUck3IEmy 0825 大盤小報 74.6s",
+        "DcdbYgnIAha 0825 三大法人 61.0s",
+        "Dcat_FjIAi0 0824 大盤小報 79.0s"
+      ],
+      "note": "2026-08-27 會議把「好」的定義換成這三支。片長、字數、主播不在本次重訂範圍（使用者 2026-08-28 裁定）。"
+    }
   },
   "gates": [
     {
@@ -75,7 +84,8 @@
         "adjacentMaterialSlots": 0,
         "firstForm": "presenter",
         "lastForm": "presenter"
-      }
+      },
+      "deviation": "對標三支 reel 都不嚴格交替（主播段最長 32s、素材只在講到可指的數字時出現）。2026-08-28 使用者裁定保留節奏驅動的交替，這是刻意偏離對標片，不是還沒改。"
     },
     {
       "id": "ledger.min-presenter",
@@ -83,7 +93,15 @@
       "rule": "最短 presenter 段長度",
       "observed": 3.02,
       "threshold": {
-        "minPresenterSec": 3.0
+        "minPresenterSec": 2.0
+      },
+      "referenceReels": {
+        "observed": [
+          2,
+          3,
+          2
+        ],
+        "source": "docs/reference-reels.md §1（2026-08-28 量測 IG cmchipk 三支：0825 大盤小報、0825 三大法人、0824 大盤小報）"
       }
     },
     {
@@ -92,7 +110,16 @@
       "rule": "單一 mg 段最長長度（連續被素材蓋住的時間）",
       "observed": 6.26,
       "threshold": {
-        "maxMaterialRunSec": 6.5
+        "maxMaterialRunSec": 11
+      },
+      "referenceReels": {
+        "observed": [
+          9,
+          11,
+          8
+        ],
+        "source": "docs/reference-reels.md §1（2026-08-28 量測 IG cmchipk 三支：0825 大盤小報、0825 三大法人、0824 大盤小報）",
+        "why": "對標片「捲一張表、黃框逐列移動」的段落最長 11 秒"
       }
     },
     {
@@ -101,11 +128,20 @@
       "rule": "素材蓋住主播的時間佔比",
       "observed": 0.44,
       "threshold": {
-        "maxCoverage": 0.5,
+        "maxCoverage": 0.45,
         "minCoverage": 0.25
       },
       "counterexample": "V2 為 0.969，主播只露臉 1.85s，被判定為主要缺陷",
-      "derivation": "上界 0.5 防素材蓋滿（V2 為 0.969）；下界 0.25 防純講話頭（紅隊的 300 秒片子是 0.087，在報告上比 V4c 好看）。"
+      "derivation": "上界 0.5 防素材蓋滿（V2 為 0.969）；下界 0.25 防純講話頭（紅隊的 300 秒片子是 0.087，在報告上比 V4c 好看）。 2026-08-28 上界改 0.40：三支對標片最高 0.39；下界 0.25 剛好等於對標最低值，不動。",
+      "referenceReels": {
+        "observed": [
+          0.28,
+          0.25,
+          0.39
+        ],
+        "source": "docs/reference-reels.md §1（2026-08-28 量測 IG cmchipk 三支：0825 大盤小報、0825 三大法人、0824 大盤小報）",
+        "note2026-08-29": "上界原訂 0.40（對標最高 0.39），但黃金樣本 v4c 是 0.44 且已核准出片；0.40 會讓 planner 對 v4c 找不到原形（回歸測試抓到）。上界改 0.45 涵蓋兩者；下界 0.25 不動。"
+      }
     },
     {
       "id": "ledger.greeting-uncovered",
@@ -185,7 +221,7 @@
     {
       "id": "frame.qa-text-match",
       "stage": "frame-qa",
-      "rule": "定格畫面上的文字必須與該格 prompt.txt 一致；不一致時 prompt 為真，重生成畫面",
+      "rule": "定格畫面上的文字必須與該格 prompt.txt 一致（MG）；shot 格則是黃框框住的內容必須是該格 sourceText 提到的數字或名稱。不一致時講稿為真，重截或重生成畫面",
       "threshold": {
         "mismatches": 0
       },
@@ -230,10 +266,35 @@
         "minMaterialSlots": 3,
         "minCoverage": 0.25,
         "maxMaterialSlots": 6,
-        "maxCoverage": 0.5
+        "maxCoverage": 0.45
       },
       "derivation": "V4c 是 4 格 44%。下界取 3 格／25%：少於三個素材時刻的晨報等於純講話頭。",
-      "counterexample": "一份 40 字的講稿會被規劃成 1 格、覆蓋率 0%，而 plan.covers-script、plan.cuts-on-clause-boundary、plan.responsibility-present 三道全部通過（0/0 算通過）。這與 ledger.min-presenter 的 Math.min([]) 回 Infinity 是同一類：空集合的真空通過。 反向也要擋：紅隊把 plan 的 9 格全部標成 mg（＝V2 主播幾乎不露臉的結構），下界版本報「9 格／100.0%」通過。"
+      "counterexample": "一份 40 字的講稿會被規劃成 1 格、覆蓋率 0%，而 plan.covers-script、plan.cuts-on-clause-boundary、plan.responsibility-present 三道全部通過（0/0 算通過）。這與 ledger.min-presenter 的 Math.min([]) 回 Infinity 是同一類：空集合的真空通過。 反向也要擋：紅隊把 plan 的 9 格全部標成 mg（＝V2 主播幾乎不露臉的結構），下界版本報「9 格／100.0%」通過。",
+      "referenceReels": {
+        "materialSlots": [
+          5,
+          3,
+          8
+        ],
+        "coverage": [
+          0.28,
+          0.25,
+          0.39
+        ],
+        "source": "docs/reference-reels.md §1（2026-08-28 量測 IG cmchipk 三支：0825 大盤小報、0825 三大法人、0824 大盤小報）",
+        "note": "8 格是 79 秒片，換算到 55 秒約 5.6，格數上限 6 不動",
+        "note2026-08-29": "上界原訂 0.40（對標最高 0.39），但黃金樣本 v4c 是 0.44 且已核准出片；0.40 會讓 planner 對 v4c 找不到原形（回歸測試抓到）。上界改 0.45 涵蓋兩者；下界 0.25 不動。"
+      }
+    },
+    {
+      "id": "plan.material-slot-length",
+      "stage": "segment-plan",
+      "rule": "單一素材格的估計長度（derivation.estSec 上緣）不得超過 maxSec；超過就必須在分句邊界切開",
+      "threshold": {
+        "maxSec": 7
+      },
+      "derivation": "一張靜態截圖配一個黃框撐不了 7 秒以上的旁白；對標 IG reel（docs/reference-reels.md §1）不移動黃框的素材段全 ≤6s，8–11s 的都有捲動或框移",
+      "counterexample": "2026-08-28 projects/20260827-qiangmao-shots 第 06 格併了 6 個分句 10.9 秒，畫面停在同一張 K線、講到台半時沒有畫面"
     },
     {
       "id": "ledger.invariants",
@@ -307,6 +368,29 @@
         "sidecarRequired": true
       },
       "counterexample": "requireFresh 是寫入方自願參加的：刪掉 sidecar 或把 inputs 改成 [] 就失效。紅隊據此做出「主播口播聯亞、字幕全片打鼎元」而 exit 0 的專案。手寫 artifact 天生沒有 sidecar，等於這道檢查對最可疑的輸入完全不作用。"
+    },
+    {
+      "id": "shot.focus-present",
+      "stage": "shot",
+      "rule": "每個素材格在 shot-plan.json 都要有截圖檔與 focus（黃框要框的區域），且 focus 落在圖內",
+      "observed": "對標三支 reel 的 16 個素材格全部有可指的數字或列表",
+      "threshold": {
+        "everyMaterialSlotHasFocus": true
+      },
+      "source": "docs/reference-reels.md §1（2026-08-28 量測 IG cmchipk 三支：0825 大盤小報、0825 三大法人、0824 大盤小報）",
+      "counterexample": "沒有可指之物的句子被排成素材格，畫面只能放一張無關的截圖——那是 2026-08-27 被判「動畫看不懂」的同一件事換一層皮"
+    },
+    {
+      "id": "shot.captured-same-day",
+      "stage": "shot",
+      "rule": "截圖時間必須落在講稿日期 D 的前一日 13:30 到 D 09:00（台北）之間；App 頁首永遠是「現在」，拍錯天頁首數字就和講稿對不上",
+      "threshold": {
+        "windowStart": "D-1 13:30",
+        "windowEnd": "D 09:00",
+        "tz": "Asia/Taipei"
+      },
+      "source": "2026-08-28 用模擬器對 08/27 講稿補截圖：頁首 46,331 點，講稿說 45,832",
+      "counterexample": "手放的截圖沒有 capturedAt → failed，不是 skipped"
     }
   ],
   "requiredArtifacts": {
@@ -373,5 +457,14 @@
     "appliesTo": "ffmpeg 加速路徑（API 1.2x 得 4.76；網頁 Studio 1.1x 實測 4.86，兩者都落在區間內）。",
     "doesNotApplyTo": "HeyGen voice_settings.speed。TTS 改速是重新合成而非時間拉伸，那條路徑的字/秒尚未量測，見 avatar-generation.json 的 candidates。",
     "source": "marketing-video/晨報講稿時長換算表.md"
+  },
+  "planning": {
+    "$note": "plan-segments.mjs 的生成目標，不是驗收上下界。生成器瞄準黃金樣本 v4c 的節奏（它是唯一通過人眼 audit 的成品）；驗收用 gates 那組依對標片放寬的包絡。兩者刻意不同：generator 對準中心，gate 守邊界。2026-08-29 事故：把 gate 的 min-presenter／max-material-run／maxCoverage 依對標片放寬後，planner 跟著讀那組數字，黃金樣本的 plan 形狀就變了（回歸測試抓到）。改這裡必須重跑 test/plan-segments.test.mjs，黃金樣本形狀不得變。",
+    "minPresenterSec": 3.0,
+    "maxMaterialRunSec": 6.5,
+    "maxCoverage": 0.45,
+    "targetCoverage": 0.44,
+    "source": "v4c 實測：最短 presenter 3.02s、最長 mg 6.26s、覆蓋率 0.44（2026-08-26）",
+    "$maxCoverageNote": "2026-08-29：原本 0.5 比 gate 的 0.45 寬，generator 可能產出自己下一步必拒的 plan；對齊 gate。v4c 0.44 仍在內。"
   }
 }
