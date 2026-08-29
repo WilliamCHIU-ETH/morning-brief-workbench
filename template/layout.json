@@ -35,7 +35,7 @@
   "colors": {
     "brandBlue": "#0152F5",
     "stageBg": "#06111f",
-    "captionBg": "rgba(6,17,31,.88)",
+    "captionBg": "transparent",
     "brandNavy": "#09275A"
   },
   "header": {
@@ -275,15 +275,16 @@
       "padding": "14px 28px 18px",
       "borderRadius": 22,
       "color": "#ffffff",
-      "fontSize": 48,
+      "fontSize": 58,
       "fontWeight": 700,
       "lineHeight": 1.35,
       "letterSpacing": ".02em",
-      "textShadow": "0 2px 4px rgba(0,0,0,.6)",
-      "boxShadow": "0 8px 24px rgba(0,0,0,.24)",
+      "textShadow": "0 0 6px rgba(0,0,0,.9), 0 3px 10px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,1)",
+      "boxShadow": "none",
       "$note_2026-08-26c": "合併過短字幕後會產生超過 18 字軟上限的長條。48px 下 19 字會換行，而換行的兩種結果都不好：text-wrap:balance 會斷在「74.8／元」把數字與單位拆開，不用 balance 則會把「嗎？」甩成孤字。改為超過軟上限時降字級，讓它一行放得下——數字不被拆、無孤字、也不需要 balance。940px ÷ 44px ≈ 21 字，覆蓋到 hard cap 前的所有情況。",
-      "longFontSize": 44,
-      "longThresholdChars": 18
+      "longFontSize": 50,
+      "longThresholdChars": 18,
+      "$note_2026-08-29": "對標 IG cmchipk 字幕樣式（docs/reference-reels.md §3）：大字白粗、深色描邊、無膠囊底、置中。先在 projects/20260825-guanghuan-test 以 project 層覆寫試片，主管 2026-08-29 看片未對樣式提出異議，收回版型預設。位置（top 1390 ≈ 72% 高）刻意不貼底：各平台（IG Reels／Shorts／TikTok）UI 蓋住底部約 12–15% 與右緣約 10–12%，字幕留在 safe zone 內才能跨平台轉發；對標帳號同樣落在約 70% 高。"
     },
     "fade": {
       "$comment": "三支片相同：淡入 0.12s、淡出 0.10s，但都不得超過該句時長的 1/4（短句才會觸發上限）。",
