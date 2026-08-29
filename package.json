@@ -11,6 +11,7 @@
     "asr": "node stages/asr.mjs",
     "render": "node stages/render.mjs",
     "heygen": "node stages/heygen.mjs",
-    "setup:whisper": "bash scripts/setup-whisper.sh"
+    "setup:whisper": "bash scripts/setup-whisper.sh",
+    "setup:minimax": "bash scripts/setup-minimax.sh"
   }
 }
