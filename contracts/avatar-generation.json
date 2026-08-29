@@ -54,7 +54,8 @@
   "registry": {
     "$note": "id 對人名。出示 payload 給使用者核准時，光看 32 位十六進位無法判斷送的是誰。",
     "avatars": {
-      "2ee530cfcdc62055d8b34a95b0c94300": "Angela-9x16（直式、坐姿）"
+      "2ee530cfcdc62055d8b34a95b0c94300": "Angela-9x16（直式、坐姿）",
+      "c2c2963b394c4c7096c1716e143477e1": "主管指定外觀（2026-08-29，名稱待補）"
     },
     "voices": {
       "df750e70c02c421fac1b532dfeb0989b": "Angela4"
