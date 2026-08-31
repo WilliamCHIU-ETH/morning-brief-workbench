@@ -93,3 +93,30 @@ test('付費前 artifacts 與 gates 齊全時，只能停在唯一人工核准�
   assert.deepEqual(status.commands, []);
   assert.match(status.approvalCommand, /--i-have-user-approval/);
 });
+
+// ── init-project 骨架守衛 ────────────────────────────────────────────────────
+// golden 樣式（0825 光環 V3＋0831 金居 v7 逐欄相同的 main.config）已收為新專案預設；
+// 這條測試守住預設不被無聲改掉：改預設必須連這裡一起改，等於強制留下量測來源。
+
+test('init-project 骨架帶 golden 樣式預設，編輯欄位刻意留空', () => {
+  const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'morning-brief-init-')), 'p');
+  execFileSync('node', [path.join(ROOT, 'stages', 'init-project.mjs'), '--project', dir], {
+    cwd: ROOT, encoding: 'utf8',
+  });
+  const mc = JSON.parse(fs.readFileSync(path.join(dir, 'main.config.json'), 'utf8'));
+  assert.deepEqual(mc, {
+    intro: false,
+    openTitle: { main: '', sub: '', preRollSec: 2.5, kicker: false, style: 'cover' },
+    titleBoard: { mode: 'hook', accent: 'gold' },
+    bgm: true,
+    lead: 0.4,
+    spotlight: 0.35,
+    brandFrame: false,
+  });
+  const vc = JSON.parse(fs.readFileSync(path.join(dir, 'voice.json'), 'utf8'));
+  assert.equal(vc.provider, 'minimax');
+  assert.equal(vc.speedDivisor, 1);
+  assert.deepEqual(vc.speeds, { hook: 1.25, body: 1.15, close: 1.08 });
+  assert.deepEqual(vc.pauses, []);   // 停頓是逐句編輯判斷，骨架不代填
+  assert.equal(vc.numerals, 'chinese');
+});
