@@ -351,7 +351,7 @@ test('openTitle 物件模式拒絕三行與缺少 main', (t) => {
   writeJson(path.join(dir, 'main.config.json'), { openTitle: { sub: '沒有主標' } });
   result = run(BUILD_MAIN, dir);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /必須提供非空的 main/);
+  assert.match(result.stderr, /openTitle\.main 是空的/);
 });
 
 test('openTitle preRoll 平移正文、延長片長並產生第一幀海報', (t) => {

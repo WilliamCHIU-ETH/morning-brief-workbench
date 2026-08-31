@@ -233,7 +233,8 @@ if (openTitleObjectMode) {
       lines = [chars.slice(0, cut).join(''), chars.slice(cut).join('')];
     }
   } else {
-    die('openTitle 物件模式必須提供非空的 main 字串或 1～2 行陣列');
+    die('openTitle.main 是空的。init-project 刻意留空：這是編輯意圖，從講稿 HOOK 提煉'
+      + ' 8 字主標（超過 layout 上限會走 4/4 兩行斷行）與一句 sub，填進 main.config.json 再重跑。');
   }
   if (lines.some((line) => [...line].length > maxChars))
     die(`openTitle.main 每行最多 ${maxChars} 字；收到「${lines.join('／')}」`);

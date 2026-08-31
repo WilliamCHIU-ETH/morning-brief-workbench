@@ -135,14 +135,45 @@ try {
 
   ensureDirectory(path.join(project, 'public'), 'public/');
 
-  // 開場卡預設開。對標的 cmchipk 每支第 0 秒都有一張標題卡（docs/reference-reels.md §3），
-  // 2026-08-29 光環 V2 以 project 層 main.config.json 開啟試片、主管未提異議，收為新專案預設。
-  // 只在檔案不存在時寫，既有專案的 main.config.json 一個位元組都不動。
+  // Golden 樣式收為新專案預設。沿革：2026-08-29 光環 V2 以 intro: true 收為預設；
+  // 2026-08-30 主管反饋後 V3 換成「主播模糊開場＋金色雙行大標＋HOOK 常駐標題板＋bgm＋lead 0.4」，
+  // 光環 V3 與 0831 金居 v7 兩支正式樣本逐欄相同（docs/editing-techniques.md 有每一招的出處）。
+  // openTitle.main／sub 刻意留空：那是編輯意圖（從講稿 HOOK 提煉、main 建議 8 字走 4/4 斷行），
+  // 程式不代填，build-main 會擋空字串。只在檔案不存在時寫，既有專案一個位元組都不動。
   const mainConfig = path.join(project, 'main.config.json');
   if (exists(mainConfig)) skipped('main.config.json');
   else {
-    fs.writeFileSync(mainConfig, JSON.stringify({ intro: true }, null, 2) + '\n');
-    made('main.config.json（intro: true）');
+    fs.writeFileSync(mainConfig, JSON.stringify({
+      intro: false,
+      openTitle: { main: '', sub: '', preRollSec: 2.5, kicker: false, style: 'cover' },
+      titleBoard: { mode: 'hook', accent: 'gold' },
+      bgm: true,
+      lead: 0.4,
+      spotlight: 0.35,
+      brandFrame: false,
+    }, null, 2) + '\n');
+    made('main.config.json（golden 樣式；openTitle.main／sub 待編輯填入）');
+  }
+
+  // 配音預設走 MiniMax 音檔路線（兩支正式樣本皆是；HeyGen 內建 TTS 是 fallback）。
+  // provider／model／voiceId／speeds／gapSec 是兩支樣本共用的校準值；
+  // pauses 是逐句的編輯判斷，刻意留空陣列，寫法見 CLAUDE.md 的配音一節。
+  const voiceConfig = path.join(project, 'voice.json');
+  if (exists(voiceConfig)) skipped('voice.json');
+  else {
+    fs.writeFileSync(voiceConfig, JSON.stringify({
+      provider: 'minimax',
+      model: 'speech-2.8-hd',
+      voiceId: 'moss_audio_3a75102e-54db-11f1-981b-8a143315d498',
+      speeds: { hook: 1.25, body: 1.15, close: 1.08 },
+      speedDivisor: 1,
+      gapSec: 0.45,
+      pauses: [],
+      rewrites: [{ from: '早安，親愛的投資人', to: '早安親愛的投資人' }],
+      numerals: 'chinese',
+      pronunciation: ['跌/(die2)'],
+    }, null, 2) + '\n');
+    made('voice.json（MiniMax 校準值；pauses 待編輯填入）');
   }
 } catch (e) {
   console.error(`初始化專案骨架失敗：${e.message}`);
