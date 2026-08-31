@@ -24,6 +24,7 @@ import {
   payloadContractDifferences,
 } from './lib/heygen-audio.mjs';
 import { imageSize } from './shot-template.mjs';
+import { axDateMatchesDataAsOf, normalizeIsoDate } from './lib/as-of-shot.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
@@ -473,20 +474,76 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
   return { ok: !bad.length, measured: bad.length ? bad.join('、') : `${mg.length}/${mg.length} 格都有截圖與 focus` };
 });
 
-// 測試模式：拿過去的講稿測試產線時，截圖日期與講稿刻意不對齊（App 頁首永遠是今天）。
-// capture-shots.mjs --test-mode 會在 shot-plan.json 寫 mode=test；這裡記「略過」而不是「未通過」，
-// 其餘 gate 照常。這是使用者 2026-08-28 的裁定；正式出片不得帶 --test-mode。
+// 歷史模式：逐格 dataAsOf 必須等於頂層 asOf；日K格還要由 AX 日期與四個 OHLC 原文作證。
+// revenue 是月資料，沒有單日查價線；它仍逐格記 dataAsOf／captureTime，但 axDate／axOhlc 必須是 null，
+// 不能捏造不存在的 AX 證據。
+{
+  const id = 'shot.data-as-of';
+  const spec = acceptance.gates.find((g) => g.id === id);
+  if (!has('shotPlan')) {
+    record(id, 'skipped', null, { rule: spec?.rule, note: '缺 shot-plan.json' });
+  } else {
+    try {
+      const sp = load('shotPlan');
+      if (!Object.hasOwn(sp, 'asOf')) {
+        record(id, 'skipped', null, { rule: spec?.rule, note: 'shot-plan.json 沒有 asOf（非歷史模式）' });
+      } else {
+        const bad = [];
+        const topAsOf = normalizeIsoDate(sp.asOf);
+        if (!topAsOf || topAsOf !== sp.asOf) bad.push(`頂層 asOf 不是 canonical YYYY-MM-DD：${JSON.stringify(sp.asOf)}`);
+        const entries = Object.entries(sp.slots ?? {});
+        if (!entries.length) bad.push('slots 是空的');
+        let kline = 0;
+        let revenue = 0;
+        for (const [slotId, entry] of entries) {
+          if (entry.dataAsOf !== sp.asOf) bad.push(`${slotId} dataAsOf ${JSON.stringify(entry.dataAsOf)} ≠ 頂層 ${JSON.stringify(sp.asOf)}`);
+          const capture = entry.captureTime ? new Date(entry.captureTime) : null;
+          if (!capture || Number.isNaN(capture.getTime())) bad.push(`${slotId} 缺有效 captureTime`);
+          if (String(entry.page ?? '').endsWith('/kLine')) {
+            kline += 1;
+            if (!axDateMatchesDataAsOf(entry.axDate, entry.dataAsOf)) {
+              bad.push(`${slotId} axDate ${JSON.stringify(entry.axDate)} ≠ dataAsOf ${JSON.stringify(entry.dataAsOf)}`);
+            }
+            const keys = ['開', '高', '低', '收'];
+            const missing = keys.filter((key) => typeof entry.axOhlc?.[key] !== 'string'
+              || !/^[\d.,]+$/u.test(entry.axOhlc[key]));
+            if (missing.length) bad.push(`${slotId} axOhlc 缺 ${missing.join('／')}`);
+          } else if (String(entry.page ?? '').endsWith('/revenue')) {
+            revenue += 1;
+            if (entry.axDate !== null || entry.axOhlc !== null) bad.push(`${slotId} revenue 不得捏造日K AX 證據`);
+          } else {
+            bad.push(`${slotId} 是 ${entry.page ?? '未知頁'}；歷史模式只接受 kLine／revenue`);
+          }
+        }
+        if (!kline) bad.push('0 格日K，沒有任何 AX 日期／OHLC 可驗證 asOf');
+        record(id, bad.length ? 'failed' : 'passed',
+          bad.length ? bad.slice(0, 5).join('；') : `${kline} 格日K AX 日期＋OHLC吻合；${revenue} 格 revenue 的 dataAsOf 吻合`,
+          { rule: spec?.rule, ...(bad.length > 5 ? { note: `另有 ${bad.length - 5} 項` } : {}) });
+      }
+    } catch (error) {
+      record(id, 'error', null, { rule: spec?.rule, note: error.message });
+    }
+  }
+}
+
+// 一般測試模式：拿過去的講稿測試產線時，截圖日期與講稿刻意不對齊（App 頁首永遠是今天）。
+// 歷史模式優先，由 shot.data-as-of 驗證，不再拿「拍攝日」判前一日窗口。
 {
   const spec = acceptance.gates.find((g) => g.id === 'shot.captured-same-day');
-  let testMode = false;
-  try { testMode = has('shotPlan') && JSON.parse(fs.readFileSync(P.path('shotPlan'), 'utf8')).mode === 'test'; } catch { /* 讀不到就照常驗 */ }
+  let shotMeta = null;
+  try { shotMeta = has('shotPlan') ? JSON.parse(fs.readFileSync(P.path('shotPlan'), 'utf8')) : null; } catch { /* 讀不到就照常驗 */ }
+  const historicalMode = shotMeta && Object.hasOwn(shotMeta, 'asOf');
+  const testMode = shotMeta?.mode === 'test';
   // 測試模式不能只靠 shot-plan 自報（reviewer 2026-08-29）：專案目錄名必須以 -test 結尾，
   // 這樣每一條路徑都寫著「測試」，不會有人把它當正式片發出去。
   const isTestDir = /-test$/u.test(path.basename(P.root));
-  if (testMode && !isTestDir) {
+  if (historicalMode) {
+    record('shot.captured-same-day', 'skipped', null,
+      { rule: spec?.rule, note: '歷史模式，由 shot.data-as-of 驗證。' });
+  } else if (testMode && !isTestDir) {
     record('shot.captured-same-day', 'failed', null,
       { rule: spec?.rule, note: `shot-plan.json 宣告 mode=test，但專案目錄「${path.basename(P.root)}」不是以 -test 結尾。測試專案的目錄名必須以 -test 結尾（例：20260826-yadian-test）；正式專案不得帶 --test-mode。` });
-  } else if (testMode && !JSON.parse(fs.readFileSync(P.path('shotPlan'), 'utf8')).capturedAt) {
+  } else if (testMode && !shotMeta?.capturedAt) {
     record('shot.captured-same-day', 'failed', null,
       { rule: spec?.rule, note: '測試模式也必須有 capturedAt（capture-shots.mjs 會寫）；手放的 shot-plan 沒有時間戳，不能靠 mode=test 混過。' });
   } else if (testMode) {

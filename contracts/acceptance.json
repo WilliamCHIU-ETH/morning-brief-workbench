@@ -384,6 +384,20 @@
       "counterexample": "沒有可指之物的句子被排成素材格，畫面只能放一張無關的截圖——那是 2026-08-27 被判「動畫看不懂」的同一件事換一層皮"
     },
     {
+      "id": "shot.data-as-of",
+      "stage": "shot",
+      "rule": "shot-plan.json 有 asOf 時，每格 dataAsOf 必須等於頂層 asOf；日K格的 AX 日期換算後必須等於 dataAsOf，且 AX 必須讀到開／高／低／收四欄。revenue 是月資料，逐格驗 dataAsOf／captureTime，但不得捏造單日 axDate／axOhlc",
+      "threshold": {
+        "slotDataAsOfMustEqualTopLevel": true,
+        "klineAxDateMustEqualDataAsOf": true,
+        "klineAxOhlcRequired": true,
+        "captureTimeRequired": true
+      },
+      "incident": "2026-08-31 金居 v5 被 reviewer 判 BLOCKED（F-01／F-02）：晨報引用前一交易日正式收盤，但 14s 加權、26s 國巨、33s 金居仍露出 App 今天的 sticky 即時報價；金居漲跌方向甚至與旁白相反。人工用查價線選中 2026/08/28 日K並由 accessibility tree 驗日期與 OHLC 才解除。",
+      "source": "2026-08-31 金居 v5 reviewer F-01／F-02 與實機查價線復現（加權收 46331.45／國巨收 597／金居收 543）",
+      "counterexample": "只寫頂層 asOf、或把今天截的 K線圖檔改名成 -0828.png，若沒有逐格 AX 日期與 OHLC，仍可讓 2026/08/31 的即時頁首數字冒充 2026/08/28 正式收盤；金居會把旁白的漲停方向顯示成下跌。"
+    },
+    {
       "id": "shot.captured-same-day",
       "stage": "shot",
       "rule": "截圖時間必須落在講稿日期 D 的前一日 13:30 到 D 09:00（台北）之間；App 頁首永遠是「現在」，拍錯天頁首數字就和講稿對不上",
