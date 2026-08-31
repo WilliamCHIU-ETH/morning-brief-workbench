@@ -16,7 +16,13 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
-import { resolveProject, sha256File, requireFresh } from './lib/project.mjs';
+import { resolveProject, sha256File, requireFresh, readJson } from './lib/project.mjs';
+import { greetingWindow } from './lib/lead.mjs';
+import {
+  checkAudioCleanMatchesScript,
+  checkAudioShaMatchesTrack,
+  payloadContractDifferences,
+} from './lib/heygen-audio.mjs';
 import { imageSize } from './shot-template.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -229,20 +235,15 @@ gate('ledger.coverage', ['segmentLedger'], (th2) => {
 
 gate('ledger.greeting-uncovered', ['segmentLedger', 'script', 'charTimes'], () => {
   const L = segmentsOf();
-  const T = load('charTimes');
-  const clean = T.map((c) => c.ch).join('');
+  const window = greetingWindow(load('charTimes'));
   // 用整句比對而不是 indexOf('早安') + 固定 8 字：紅隊在 HOOK 裡塞一個「早安」，
   // 就讓檢查窗口落在錯的位置，真正的問候被滿版圖表整段蓋住而報通過。
-  const FAMILY = /早安[^。？！]{0,6}親愛的投資人|早安[^。？！]{0,4}投資朋友|早安[^。？！]{0,8}投資人/u;
-  const m = clean.match(FAMILY);
-  if (!m) throw new Error('講稿裡找不到問候句（早安…投資人）');
-  const at = m.index; const end = at + m[0].length - 1;
-  const t0 = T[at].start; const t1 = T[end].end;
+  if (!window) throw new Error('講稿裡找不到問候句（早安…投資人）');
   const covering = L.segments.filter((s) =>
-    MATERIAL.has(s.form) && s.endSec > t0 + EPS && s.startSec < t1 - EPS);
+    MATERIAL.has(s.form) && s.endSec > window.start + EPS && s.startSec < window.end - EPS);
   return {
     ok: covering.length === 0,
-    measured: `問候「${m[0]}」${t0.toFixed(2)}–${t1.toFixed(2)}s，` +
+    measured: `問候「${window.text}」${window.start.toFixed(2)}–${window.end.toFixed(2)}s，` +
       (covering.length ? `被 ${covering.map((s) => s.id).join('／')} 蓋住` : '落在 presenter 段內'),
   };
 });
@@ -411,10 +412,18 @@ gate('video.fps-no-drop', ['avatarRaw', 'avatarSpeeded'], () => {
 gate('video.speed-factor', ['avatarRaw', 'avatarSpeeded'], (th2) => {
   // 光看 fps 不夠：speed 是從時長反推的，逐位元複製（speed=1）與放慢一半
   // （speed=0.5）都會讓 fps 門檻退化甚至更鬆。語速校準是對「加速後」講的，
-  // 所以倍率本身必須等於設定值。
+  // 所以倍率本身必須等於該路線的設定值。
   const speed = vdur('avatarRaw') / vdur('avatarSpeeded');
-  const exp = th2.expected ?? 1.1; const tol = th2.tolerance ?? 0.03;
-  return { ok: Math.abs(speed - exp) <= tol, measured: `${speed.toFixed(3)}（設定 ${exp} ±${tol}）` };
+  const audioRoute = has('voiceTrack');
+  const expectedField = audioRoute ? 'audioRouteExpected' : 'expected';
+  const exp = Number(th2[expectedField]);
+  const tol = Number(th2.tolerance ?? 0.03);
+  if (!Number.isFinite(exp)) throw new Error(`video.speed-factor.${expectedField} 不是有效數字`);
+  const route = audioRoute ? '音檔路線' : '文字路線';
+  return {
+    ok: Math.abs(speed - exp) <= tol,
+    measured: `${route}：${speed.toFixed(3)}（設定 ${exp} ±${tol}）`,
+  };
 });
 
 // ── B-roll provenance ─────────────────────────────────────────────────────
@@ -585,39 +594,70 @@ for (const id of ['frame.qa-text-match']) {
       { rule: lock.gate.rule, note: '缺 heygen-request.json' + (req ? '（已付費生成過，這是必要 artifact）' : '（還沒生成）') });
   } else {
     const sent = JSON.parse(fs.readFileSync(payloadFile, 'utf8'));
-    const diff = [];
-    // 逐欄比對契約 payload 的每一個鍵，不只 locked 陣列那兩欄。
-    // 原本只比 2 欄，於是 16:9 480p、engine 是 talking_photo 的 payload 通過了
-    // 整條產線唯一的付費前檢查。
-    const walk = (want, got, prefix = '') => {
-      for (const [k, v] of Object.entries(want)) {
-        const g = got?.[k];
-        if (v && typeof v === 'object' && !Array.isArray(v)) { walk(v, g, `${prefix}${k}.`); continue; }
-        if (JSON.stringify(g) !== JSON.stringify(v)) {
-          diff.push(`${prefix}${k}：送 ${JSON.stringify(g)}，契約 ${JSON.stringify(v)}`);
+    const isAudioRoute = Object.hasOwn(sent, 'audioTrack') || Object.hasOwn(sent, 'audio_asset_id');
+    if (isAudioRoute) {
+      const { audioTrack: _audioTrack, ...payload } = sent;
+      const diff = payloadContractDifferences(payload, lock, {
+        audioRoute: true,
+        allowPendingAsset: true,
+      });
+      try {
+        const trackMeta = readJson(P, 'voiceTrackMeta');
+        const cleanCheck = checkAudioCleanMatchesScript(
+          fs.readFileSync(P.path('script'), 'utf8'), trackMeta);
+        if (!cleanCheck.ok) {
+          diff.push(
+            `voice/track.json 的 clean 原文與 script.txt 正文不符（合成 ${cleanCheck.actualLength} 字、講稿 ${cleanCheck.expectedLength} 字）`);
+        }
+        const shaCheck = checkAudioShaMatchesTrack(P.path('voiceTrack'), trackMeta);
+        if (!shaCheck.ok) diff.push('track.mp3 sha256 與 voice/track.json 不符');
+        if (sent.audioTrack?.path !== P.rel('voiceTrack')) {
+          diff.push(`audioTrack.path 必須是 ${P.rel('voiceTrack')}`);
+        }
+        if (sent.audioTrack?.sha256 !== shaCheck.actual) {
+          diff.push('heygen-request.json 的 audioTrack.sha256 與待上傳音檔不符');
+        }
+      } catch (error) {
+        diff.push(error.message);
+      }
+      record('avatar.payload-locked', diff.length ? 'failed' : 'passed',
+        diff.length ? diff.slice(0, 4).join('；') : '音檔 payload 逐欄相符，合成原文與音檔 sha256 一致',
+        { rule: lock.gate.rule });
+    } else {
+      const diff = [];
+      // 逐欄比對契約 payload 的每一個鍵，不只 locked 陣列那兩欄。
+      // 原本只比 2 欄，於是 16:9 480p、engine 是 talking_photo 的 payload 通過了
+      // 整條產線唯一的付費前檢查。
+      const walk = (want, got, prefix = '') => {
+        for (const [k, v] of Object.entries(want)) {
+          const g = got?.[k];
+          if (v && typeof v === 'object' && !Array.isArray(v)) { walk(v, g, `${prefix}${k}.`); continue; }
+          if (JSON.stringify(g) !== JSON.stringify(v)) {
+            diff.push(`${prefix}${k}：送 ${JSON.stringify(g)}，契約 ${JSON.stringify(v)}`);
+          }
+        }
+      };
+      walk(lock.payload, sent);
+      for (const l of lock.locked) {
+        const got = l.field.split('.').reduce((o, k) => (o ?? {})[k], sent);
+        if (JSON.stringify(got) !== JSON.stringify(l.value)) {
+          diff.push(`${l.field}：送 ${JSON.stringify(got)}，鎖定值 ${JSON.stringify(l.value)}`);
         }
       }
-    };
-    walk(lock.payload, sent);
-    for (const l of lock.locked) {
-      const got = l.field.split('.').reduce((o, k) => (o ?? {})[k], sent);
-      if (JSON.stringify(got) !== JSON.stringify(l.value)) {
-        diff.push(`${l.field}：送 ${JSON.stringify(got)}，鎖定值 ${JSON.stringify(l.value)}`);
+      // 送出去生成的稿子必須就是 script.txt 的正文。否則主播講的是別支影片。
+      if (has('script')) {
+        const want = cleanOfScript().map((c) => c.char).join('');
+        const sentText = sent.script ?? sent.input_text ?? '';
+        const gotClean = cleanBodyWithIndex(String(sentText)).length
+          ? cleanBodyWithIndex(String(sentText)).map((c) => c.char).join('') : '';
+        if (gotClean !== want) {
+          diff.push(`script／input_text 與 script.txt 不符（送出 ${gotClean.length} 字、講稿 ${want.length} 字）`);
+        }
       }
+      record('avatar.payload-locked', diff.length ? 'failed' : 'passed',
+        diff.length ? diff.slice(0, 4).join('；') : `payload 逐欄相符，稿子與 script.txt 一致`,
+        { rule: lock.gate.rule });
     }
-    // 送出去生成的稿子必須就是 script.txt 的正文。否則主播講的是別支影片。
-    if (has('script')) {
-      const want = cleanOfScript().map((c) => c.char).join('');
-      const sentText = sent.script ?? sent.input_text ?? '';
-      const gotClean = cleanBodyWithIndex(String(sentText)).length
-        ? cleanBodyWithIndex(String(sentText)).map((c) => c.char).join('') : '';
-      if (gotClean !== want) {
-        diff.push(`script／input_text 與 script.txt 不符（送出 ${gotClean.length} 字、講稿 ${want.length} 字）`);
-      }
-    }
-    record('avatar.payload-locked', diff.length ? 'failed' : 'passed',
-      diff.length ? diff.slice(0, 4).join('；') : `payload 逐欄相符，稿子與 script.txt 一致`,
-      { rule: lock.gate.rule });
   }
 }
 

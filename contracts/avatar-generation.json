@@ -32,7 +32,7 @@
   },
   "gate": {
     "id": "avatar.payload-locked",
-    "rule": "送出前必須逐欄比對 payload 的每一個鍵（含 aspect_ratio／resolution／engine／type），並驗證 script／input_text 與 script.txt 的正文相符",
+    "rule": "送出前必須逐欄比對 payload 的每一個鍵（含 aspect_ratio／resolution／engine／type）。文字路線另驗 script／input_text 與 script.txt 的正文相符；音檔路線依 audioRoute 區塊驗合成輸入與音檔本身。",
     "humanApproval": "必須：dry-run payload 出示 → 取得明確同意 → 才呼叫",
     "counterexample": "原本只比 locked 陣列裡那兩欄。紅隊送出 16:9 480p、engine 是 talking_photo、input_text 是別支影片舊稿的 payload，通過了整條產線唯一的付費前檢查。"
   },
@@ -60,5 +60,32 @@
     "voices": {
       "df750e70c02c421fac1b532dfeb0989b": "Angela4"
     }
+  },
+  "audioRoute": {
+    "$note": "自備音檔取代 script+voice_id 時的量法。2026-08-30 使用者裁定改用自己合成的音軌。HeyGen v3 文件明寫 script 與 audio_asset_id 互斥、voice_settings 在音檔路線不生效，所以『script 必須等於 script.txt』驗不到；改驗合成輸入與音檔本身。門檻沒放寬：仍是逐欄比對＋稿子必須是同一份。",
+    "forbiddenFields": [
+      "script",
+      "voice_id",
+      "voice_settings"
+    ],
+    "requiredFields": [
+      "audio_asset_id"
+    ],
+    "checks": [
+      {
+        "id": "audio.clean-matches-script",
+        "rule": "voice/track.json 每段 cleanOriginal 串接後必須等於 script.txt 正文的 clean 文字（以 script-utils.js 的 cleanBodyWithIndex 為準）"
+      },
+      {
+        "id": "audio.sha-matches-track",
+        "rule": "實際上傳的 voice/track.mp3 sha256 必須等於 voice/track.json 記錄值"
+      }
+    ],
+    "humanApproval": "必須：dryrun 出示 payload、音檔長度、sha256 前 12 碼與成本 → 取得明確同意 → 才呼叫",
+    "counterexample": "沒有這一段，音檔路線就沒有任何內容檢查——可以拿任何一條音軌去生成而 gate 全綠。",
+    "sources": [
+      "https://developers.heygen.com/reference/create-video",
+      "https://developers.heygen.com/reference/upload-asset"
+    ]
   }
 }

@@ -313,8 +313,9 @@
       "observed": 48.6,
       "threshold": {
         "minSec": 42,
-        "maxSec": 55
+        "maxSec": 65
       },
+      "maxSecSource": "原本 55s 由「260 字 ÷ 4.70 clean 字/秒」推得，而 4.70 是 HeyGen Angela4＋ffmpeg 1.2× 的校準值，換配音引擎即不成立（MiniMax 把 44,762 唸成七個中文字，音節數不同）。新上界 65s 的量測來源：對標帳號 cmchipk 三支片為 56.1／74.6／79.0 秒，皆超過 55s；本支旁白 59.2 秒。下界 42s 不動——它擋的是紅隊那支 300 秒的片子。2026-08-30 使用者裁定。",
       "counterexample": "契約寫 42–55s，但 targetSec 從來沒有量測對應。紅隊做出 300 秒的片子，覆蓋率 0.087 在報告上比 V4c 的 0.44 更好看。"
     },
     {
@@ -333,8 +334,10 @@
       "observed": 1.1,
       "threshold": {
         "expected": 1.1,
-        "tolerance": 0.03
+        "tolerance": 0.03,
+        "audioRouteExpected": 1
       },
+      "audioRouteSource": "1.1 是為了補償 HeyGen TTS 唸太慢而存在的。音檔路線（專案有 voice/track.mp3）的語速在合成端就決定（voice.json 的分段 speed），沒有 ffmpeg 時間拉伸可量，實際倍率就是 1.0；再乘 1.1 等於把使用者核准過的聲音又拉快一次。規則不變：宣告的倍率必須等於實際倍率。2026-08-30 使用者核准。",
       "counterexample": "原本的 fps gate 用 speed = inDur/outDur 反推，逐位元複製（speed=1）與放慢一半（speed=0.5）都通過——門檻反而更鬆。語速校準是對「加速後」講的。"
     },
     {

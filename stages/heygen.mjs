@@ -18,8 +18,14 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { resolveProject } from './lib/project.mjs';
+import { resolveProject, readJson, sha256File } from './lib/project.mjs';
 import { requireEnv } from './lib/env.mjs';
+import {
+  checkAudioCleanMatchesScript,
+  checkAudioShaMatchesTrack,
+  payloadContractDifferences,
+  summarizeSynthesisInput,
+} from './lib/heygen-audio.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
@@ -42,6 +48,7 @@ const APPROVED = argv.includes('--i-have-user-approval');
 const raw = fs.readFileSync(P.path('script'), 'utf8');
 const body = getBodyAfterVoice(raw);
 const cleanChars = cleanBodyWithIndex(body).length;
+const hasAudioTrack = fs.existsSync(P.path('voiceTrack'));
 const title = (getTitleText(raw) || '').split('\n').map((s) => s.trim()).filter(Boolean);
 
 // raw 秒數用未加速的語速推。加速後的區間是 acceptance.calibration，
@@ -60,15 +67,91 @@ function buildPayload() {
     o[parts[0]] = l.value;
   }
   p.avatar_id = process.env.MB_AVATAR_ID || lock.notLocked?.$avatarId || '2ee530cfcdc62055d8b34a95b0c94300';
-  p.voice_id = process.env.MB_VOICE_ID || lock.notLocked?.$voiceId || 'df750e70c02c421fac1b532dfeb0989b';
-  p.script = body.split('\n').map((s) => s.trim()).filter(Boolean).join('\n\n');
+  if (hasAudioTrack) {
+    p.audio_asset_id = '<待上傳>';
+  } else {
+    p.voice_id = process.env.MB_VOICE_ID || lock.notLocked?.$voiceId || 'df750e70c02c421fac1b532dfeb0989b';
+    p.script = body.split('\n').map((s) => s.trim()).filter(Boolean).join('\n\n');
+  }
   p.title = `${(title[1] || title[0] || 'morning-brief').replace(/[^\w一-鿿-]/g, '')}`.slice(0, 60);
   return p;
 }
 
+function probeAudioDuration(file) {
+  const value = execFileSync('ffprobe', [
+    '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file,
+  ], { encoding: 'utf8' }).trim();
+  const durationSec = Number(value);
+  if (!Number.isFinite(durationSec)) throw new Error(`ffprobe 無法取得音檔長度：${file}`);
+  return durationSec;
+}
+
+function loadAudioTrack() {
+  if (!hasAudioTrack) return null;
+  const bytes = fs.statSync(P.path('voiceTrack')).size;
+  if (bytes > 32 * 1024 * 1024) {
+    throw new Error(`${P.rel('voiceTrack')} 為 ${(bytes / 1048576).toFixed(1)} MB，超過 HeyGen assets 的 32 MB 上限。`);
+  }
+  if (!fs.existsSync(P.path('voiceTrackMeta'))) {
+    throw new Error(`有 ${P.rel('voiceTrack')}，但缺 ${P.rel('voiceTrackMeta')}。請重跑 voice-minimax.mjs synth。`);
+  }
+  const metadata = readJson(P, 'voiceTrackMeta');
+  return {
+    path: P.rel('voiceTrack'),
+    file: P.path('voiceTrack'),
+    sha256: sha256File(P.path('voiceTrack')),
+    durationSec: probeAudioDuration(P.path('voiceTrack')),
+    metadata,
+    summary: summarizeSynthesisInput(metadata),
+  };
+}
+
+function apiPayloadOf(request) {
+  const { audioTrack: _audioTrack, ...payload } = request;
+  return payload;
+}
+
+function validateRequestBeforeCreate(request, audio) {
+  const payload = apiPayloadOf(request);
+  const differences = payloadContractDifferences(payload, lock, {
+    audioRoute: Boolean(audio),
+    allowPendingAsset: Boolean(audio),
+  });
+  if (audio && !lock.audioRoute) {
+    console.error('契約尚未定義音檔路線的量法');
+    process.exit(1);
+  }
+  if (audio) {
+    const cleanCheck = checkAudioCleanMatchesScript(raw, audio.metadata);
+    if (!cleanCheck.ok) {
+      differences.push(
+        `voice/track.json 的 clean 原文與 script.txt 正文不符（合成 ${cleanCheck.actualLength} 字、講稿 ${cleanCheck.expectedLength} 字）`);
+    }
+    const shaCheck = checkAudioShaMatchesTrack(audio.file, audio.metadata);
+    if (!shaCheck.ok) differences.push('track.mp3 sha256 與 voice/track.json 不符');
+    if (request.audioTrack?.path !== audio.path) differences.push(`audioTrack.path 必須是 ${audio.path}`);
+    if (request.audioTrack?.sha256 !== audio.sha256) differences.push('heygen-request.json 的 audioTrack.sha256 與待上傳音檔不符');
+  } else {
+    const expected = cleanBodyWithIndex(body).map((entry) => entry.char).join('');
+    const actual = cleanBodyWithIndex(String(payload.script ?? payload.input_text ?? ''))
+      .map((entry) => entry.char).join('');
+    if (actual !== expected) differences.push(`script／input_text 與 script.txt 不符（送 ${actual.length} 字、講稿 ${expected.length} 字）`);
+  }
+  if (differences.length) {
+    console.error(`拒絕執行：payload 未通過契約逐欄比對：\n  ${differences.join('\n  ')}`);
+    process.exit(1);
+  }
+}
+
 if (cmd === 'dryrun') {
+  let audio = null;
+  try { audio = loadAudioTrack(); }
+  catch (error) { console.error(error.message); process.exit(1); }
   const payload = buildPayload();
-  fs.writeFileSync(path.join(P.root, 'heygen-request.json'), `${JSON.stringify(payload, null, 2)}\n`);
+  const request = audio
+    ? { ...payload, audioTrack: { path: audio.path, sha256: audio.sha256, durationSec: audio.durationSec } }
+    : payload;
+  fs.writeFileSync(path.join(P.root, 'heygen-request.json'), `${JSON.stringify(request, null, 2)}\n`);
   // 出示用的版本：id 加註人名，講稿折成一行摘要。
   // 講稿在這個區塊上面已經完整出示過，塞進來只會讓 payload 沒法掃視——
   // 而使用者要核准的正是「送出去的是不是我看過的那份設定」。
@@ -99,10 +182,20 @@ if (cmd === 'dryrun') {
   walk(payload, '  ');
   lines.forEach((l) => console.log(l));
   console.log('}');
+  if (audio) {
+    console.log(`音檔長度：${audio.durationSec.toFixed(2)} 秒`);
+    console.log(`音檔 SHA-256：${audio.sha256.slice(0, 12)}`);
+    console.log(`合成輸入：${audio.summary}`);
+  }
   console.log('');
   console.log('── 成本 ──────────────────────────────────────────────');
-  console.log(`clean ${cleanChars} 字 → 生成端原始長度約 ${rawSec[0].toFixed(1)}–${rawSec[1].toFixed(1)} 秒`);
-  console.log(`Photo Avatar $${USD_PER_SEC}／秒 → 本次約 $${(rawSec[0] * USD_PER_SEC).toFixed(2)}–$${(rawSec[1] * USD_PER_SEC).toFixed(2)}`);
+  if (audio) {
+    console.log(`音檔 ${audio.durationSec.toFixed(1)} 秒 → 生成端原始長度 ${audio.durationSec.toFixed(1)} 秒`);
+    console.log(`Photo Avatar $${USD_PER_SEC}／秒 → 本次約 $${(audio.durationSec * USD_PER_SEC).toFixed(2)}`);
+  } else {
+    console.log(`clean ${cleanChars} 字 → 生成端原始長度約 ${rawSec[0].toFixed(1)}–${rawSec[1].toFixed(1)} 秒`);
+    console.log(`Photo Avatar $${USD_PER_SEC}／秒 → 本次約 $${(rawSec[0] * USD_PER_SEC).toFixed(2)}–$${(rawSec[1] * USD_PER_SEC).toFixed(2)}`);
+  }
   console.log('');
   console.log('已寫入 heygen-request.json。**這一步沒有花錢。**');
   console.log('接下來必須把上面的 payload 與成本出示給使用者，取得明確同意，才可以：');
@@ -117,6 +210,29 @@ if (cmd === 'create') {
     console.error('取得明確同意之後才可以帶上這個旗標。**不得在使用者沒點頭時自行帶上。**');
     process.exit(3);
   }
+  const reqFile = path.join(P.root, 'heygen-request.json');
+  if (!fs.existsSync(reqFile)) {
+    console.error('缺 heygen-request.json —— 還沒跑過 dryrun。');
+    console.error('先跑 dryrun 產生 payload 並出示給使用者，取得同意之後才 create。');
+    process.exit(1);
+  }
+  const request = JSON.parse(fs.readFileSync(reqFile, 'utf8'));
+  const audioRequest = Object.hasOwn(request, 'audioTrack') || Object.hasOwn(request, 'audio_asset_id');
+  if (hasAudioTrack && !audioRequest) {
+    console.error(`已有 ${P.rel('voiceTrack')}，但 heygen-request.json 還是文字路線。請重跑 heygen dryrun 取得音檔 payload。`);
+    process.exit(1);
+  }
+  let audio = null;
+  if (audioRequest) {
+    if (!hasAudioTrack) {
+      console.error(`heygen-request.json 是音檔路線，但缺 ${P.rel('voiceTrack')}。請重跑 voice-minimax.mjs synth 與 heygen dryrun。`);
+      process.exit(1);
+    }
+    try { audio = loadAudioTrack(); }
+    catch (error) { console.error(error.message); process.exit(1); }
+  }
+  validateRequestBeforeCreate(request, audio);
+
   // 付費前的 gate 必須全過。錢花下去之後再發現講稿不合格是不可逆的浪費。
   try {
     execFileSync('node', [path.join(here, 'run-gates.mjs'), '--project', P.root],
@@ -126,13 +242,30 @@ if (cmd === 'create') {
     process.exit(4);
   }
   const KEY = requireEnv('HEYGEN_API_KEY');
-  const reqFile = path.join(P.root, 'heygen-request.json');
-  if (!fs.existsSync(reqFile)) {
-    console.error('缺 heygen-request.json —— 還沒跑過 dryrun。');
-    console.error('先跑 dryrun 產生 payload 並出示給使用者，取得同意之後才 create。');
-    process.exit(1);
+  let payload = apiPayloadOf(request);
+  if (audio) {
+    const form = new FormData();
+    form.append('file', new Blob([fs.readFileSync(audio.file)], { type: 'audio/mpeg' }), path.basename(audio.file));
+    const uploadResponse = await fetch('https://api.heygen.com/v3/assets', {
+      method: 'POST',
+      headers: { 'X-Api-Key': KEY },
+      body: form,
+    });
+    const uploadData = await uploadResponse.json().catch(() => null);
+    const assetId = uploadData?.data?.asset_id;
+    if (!uploadResponse.ok || typeof assetId !== 'string' || !assetId) {
+      console.error(`HeyGen 音檔上傳失敗（HTTP ${uploadResponse.status}）：${JSON.stringify(uploadData)}`);
+      process.exit(1);
+    }
+    request.audio_asset_id = assetId;
+    fs.writeFileSync(reqFile, `${JSON.stringify(request, null, 2)}\n`);
+    payload = apiPayloadOf(request);
+    const differences = payloadContractDifferences(payload, lock, { audioRoute: true });
+    if (differences.length) {
+      console.error(`音檔已上傳，但拒絕送出生成：payload 未通過契約逐欄比對：\n  ${differences.join('\n  ')}`);
+      process.exit(1);
+    }
   }
-  const payload = JSON.parse(fs.readFileSync(reqFile, 'utf8'));
   const res = await fetch('https://api.heygen.com/v3/videos', {
     method: 'POST',
     headers: { 'X-Api-Key': KEY, 'Content-Type': 'application/json' },

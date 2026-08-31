@@ -4,7 +4,8 @@
  *
  *   node stages/speedup.mjs --project <dir> [--factor 1.1]
  *
- * 倍率預設從 contracts/acceptance.json 的 video.speed-factor 讀。
+ * 倍率預設從 contracts/acceptance.json 的 video.speed-factor 讀；若專案已有
+ * voice/track.mp3，改讀 audioRouteExpected，避免把核准音檔再拉快一次。
  *
  * **必須設 `-r`。** 不設的話輸出 fps 會留在輸入 fps，25 × 1.2 = 30 需要的格數
  * 拿不到，ffmpeg 就丟格——實測丟掉 16.6%。判準寫在 video.fps-no-drop：
@@ -27,8 +28,14 @@ try { P = resolveProject(); } catch (e) {
 }
 const argv = process.argv.slice(2);
 const fi = argv.indexOf('--factor');
-const FACTOR = Number(fi >= 0 ? argv[fi + 1]
-  : acceptance.gates.find((g) => g.id === 'video.speed-factor')?.threshold?.expected ?? 1.1);
+const speedThreshold = acceptance.gates.find((g) => g.id === 'video.speed-factor')?.threshold ?? {};
+const audioRoute = fs.existsSync(P.path('voiceTrack'));
+const defaultFactor = audioRoute ? speedThreshold.audioRouteExpected : speedThreshold.expected;
+const FACTOR = Number(fi >= 0 ? argv[fi + 1] : defaultFactor);
+if (!Number.isFinite(FACTOR) || FACTOR <= 0) {
+  console.error(`速度倍率必須是大於 0 的數字，實得 ${JSON.stringify(fi >= 0 ? argv[fi + 1] : defaultFactor)}。`);
+  process.exit(2);
+}
 
 const src = P.path('avatarRaw');
 if (!fs.existsSync(src)) {
@@ -44,7 +51,9 @@ const inFps = b ? a / b : a;
 const inDur = Number(probe(src, 'format=duration', false));
 // 輸出 fps 取「輸入 × 倍率」進位到常見值，並確保不低於它——這是 fps gate 的判準。
 const need = inFps * FACTOR;
-const outFps = [24, 25, 30, 50, 60].find((f) => f >= need - 1e-9) ?? Math.ceil(need);
+const outFps = Math.abs(FACTOR - 1) < 1e-12
+  ? inFps
+  : ([24, 25, 30, 50, 60].find((f) => f >= need - 1e-9) ?? Math.ceil(need));
 
 // atempo 單次只吃 0.5–2.0，超出要串接。晨報用不到，但寫死上限會在別人改倍率時爆掉。
 const tempo = [];
@@ -55,12 +64,20 @@ tempo.push(`atempo=${rest}`);
 
 const dst = P.path('avatarSpeeded');
 fs.mkdirSync(path.dirname(dst), { recursive: true });
+if (audioRoute) {
+  console.log('音檔路線：語速在合成端決定，這一步只複製不拉伸。');
+}
 console.log(`輸入 ${inFps}fps ${inDur.toFixed(2)}s → 倍率 ${FACTOR} → 需要 ${need.toFixed(2)}fps → 輸出設 ${outFps}fps`);
-execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', src,
-  '-filter_complex', `[0:v]setpts=${(1 / FACTOR).toFixed(6)}*PTS[v];[0:a]${tempo.join(',')}[a]`,
-  '-map', '[v]', '-map', '[a]', '-r', String(outFps),
-  '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
-  '-c:a', 'aac', '-b:a', '192k', dst], { stdio: ['ignore', 'inherit', 'inherit'] });
+if (Math.abs(FACTOR - 1) < 1e-12) {
+  // 整個容器逐位元複製，視訊與音訊都不重編碼，避免不必要的畫質與音質損失。
+  fs.copyFileSync(src, dst);
+} else {
+  execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', src,
+    '-filter_complex', `[0:v]setpts=${(1 / FACTOR).toFixed(6)}*PTS[v];[0:a]${tempo.join(',')}[a]`,
+    '-map', '[v]', '-map', '[a]', '-r', String(outFps),
+    '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac', '-b:a', '192k', dst], { stdio: ['ignore', 'inherit', 'inherit'] });
+}
 
 const publicVideo = path.join(P.root, 'public', 'input-video.mp4');
 fs.mkdirSync(path.dirname(publicVideo), { recursive: true });
