@@ -21,6 +21,9 @@ import crypto from 'node:crypto';
 
 export const CANONICAL = {
   script: 'script.txt',
+  voice: 'voice.json',
+  voiceTrack: 'voice/track.mp3',
+  voiceTrackMeta: 'voice/track.json',
   segmentPlan: 'segment-plan.json',
   avatarRaw: 'avatar/raw.mp4',
   avatarSpeeded: 'avatar/speeded.mp4',
@@ -31,6 +34,8 @@ export const CANONICAL = {
   captionLedger: 'caption-ledger.json',
   layout: 'template/layout.json',
   mainConfig: 'main.config.json',
+  mgOverrides: 'mg-overrides.json',
+  emphasis: 'emphasis.json',
   brollProvenance: 'broll/broll-provenance.json',
   shotPlan: 'shot-plan.json',
   gateReport: 'gate-report.json',

@@ -38,6 +38,14 @@
     "captionBg": "transparent",
     "brandNavy": "#09275A"
   },
+  "theme": {
+    "$comment": "cmchipk 對標的金橘主題色；2026-08-30 使用者裁定。只有明確開啟 cover／gold／warm 的新層使用，既有 token 不改值。",
+    "goldLight": "#FFE27A",
+    "gold": "#FFC83D",
+    "amber": "#FF9A1F",
+    "inkBrown": "#5A2E00",
+    "inkDeep": "#2B1500"
+  },
   "header": {
     "$comment": "header-overlay-v2.png 是 1080×1920 全幅 RGBA，白框以分隔線切成左右兩格。數值沿用 FocusstockComposition.tsx 的 FS_LAYOUT（使用者拍板）。",
     "$headerAssetSpec": {
@@ -140,6 +148,9 @@
     "borderWidth": 2,
     "color": "#ffffff",
     "boxShadow": "0 14px 36px rgba(1,8,18,.55)",
+    "accent": null,
+    "accentWidth": 8,
+    "$accentComment": "titleBoard 物件模式 accent=gold 才使用；null 與字串 hook 維持既有樣式。",
     "oneLine": {
       "padding": "20px 32px",
       "lineHeight": 1.2,
@@ -158,6 +169,27 @@
         "fontWeight": 700
       }
     },
+    "hook": {
+      "$comment": [
+        "titleBoard=hook 時改放正文 HOOK。HOOK 通常 20–28 字，34px 在 608px 內自然折成兩行；",
+        "板寬沿用 668px，height:auto 加 minHeight 148px，避免短 HOOK 讓既有標題板縮水。"
+      ],
+      "padding": "16px 30px 18px",
+      "lineHeight": 1.18,
+      "minHeight": 148,
+      "line1": {
+        "fontSize": 26,
+        "fontWeight": 400,
+        "color": "#9FB0C4",
+        "marginBottom": 6
+      },
+      "line2": {
+        "fontSize": 34,
+        "fontWeight": 700,
+        "lineHeight": 1.32,
+        "color": "#FFFFFF"
+      }
+    },
     "$note_2026-08-26": "底色原為 #0e1a2b，與 B-roll 底色完全相同，在 MG 那幾格只剩框線在撐、幾乎消失。改為 #060F1C 並加強陰影。",
     "$note_2026-08-26b": "使用者 audit：(1) −2.4° 斜角「一直卡在那裡感覺很突兀」→ 改 0。(2) 底色不得與 B-roll 同色，否則融入背景 → 改用品牌藍 #09275A（自 CMoney 頂欄圖取樣的藍底），與 B-roll 的 #0E1A2B 差在藍通道 47 階，是真的分得開的顏色。#060F1C 只是更暗的同系色，不算解決。"
   },
@@ -170,6 +202,7 @@
       "開場卡，疊在 intro-frame.jpg 上。固定 1 秒，總長 = 開場卡 + heygen 期，沒有 outro",
       "（focusstock-timeline.ts:54）。",
       "2026-08-26 使用者裁決：這 1 秒不計入片長目標。「45s 片」指 45 秒旁白、成片 46 秒；",
+      "2026-08-30 同一裁決擴及 openTitle.preRollSec：靜默拍也加在旁白片長之外，不壓縮正文。",
       "60s 同理成片 61 秒。所以 晨報講稿時長換算表.md 的字數預算不因開場卡下調 ——",
       "旁白要保有完整長度，兩個觀察指標的空間不能被壓縮。",
       "重要：label 那一格是「描述圖裡已經有什麼」，不是要畫上去的槽位 ——",
@@ -306,7 +339,197 @@
     "volume": 0.15,
     "fadeInSec": 1.0,
     "fadeOutSec": 2.0,
+    "durationToleranceSec": 0.5,
+    "minUsableBytes": 1024,
     "mixedFile": "bgm-mixed.m4a"
+  },
+  "openTitle": {
+    "$comment": [
+      "openTitle=true 保留舊 HOOK 大標；物件模式改為兩層編輯大標，並可用 preRollSec 加開口前靜默拍。",
+      "標題帶刻意落在 y=700–1100，避開 y=1390 的字幕；物件主標最多兩行，最後一行最大。",
+      "filter、進場、拉焦與淡出秒數全部集中在這裡，build-main 不持有後製秒數。"
+    ],
+    "holdSec": 1.2,
+    "focusSec": 0.5,
+    "$strapInSec": "常駐標題條（titleBoard=hook）在拉焦時淡入的秒數。2026-08-30 V3 草稿實測：開場同時有大標、標題條、字幕，HOOK 出現三次；改成開場只留大標，標題條與字幕等拉焦才進。",
+    "strapInSec": 0.4,
+    "focusEase": "power2.inOut",
+    "titleFadeEase": "power2.in",
+    "avatar": {
+      "blurPx": 18,
+      "brightness": 0.8,
+      "endBlurPx": 0,
+      "endBrightness": 1,
+      "clearFilter": "none"
+    },
+    "panel": {
+      "left": 90,
+      "top": 700,
+      "width": 900,
+      "height": 400,
+      "textAlign": "center"
+    },
+    "main": {
+      "$comment": "物件模式主標。字串超過 maxCharsPerLine 時最多自動折兩行；單行也使用 line2 的超大字級。",
+      "maxCharsPerLine": 7,
+      "line1": {
+        "fontSize": 104,
+        "fontWeight": 900,
+        "lineHeight": 1.05,
+        "color": "#FFFFFF",
+        "textShadow": "-3px -3px 0 #09275A,3px -3px 0 #09275A,-3px 3px 0 #09275A,3px 3px 0 #09275A,0 8px 24px rgba(0,0,0,.85)"
+      },
+      "line2": {
+        "fontSize": 148,
+        "fontWeight": 900,
+        "lineHeight": 1,
+        "color": "#FFFFFF",
+        "textShadow": "-4px -4px 0 #09275A,4px -4px 0 #09275A,-4px 4px 0 #09275A,4px 4px 0 #09275A,0 10px 30px rgba(0,0,0,.9)"
+      }
+    },
+    "sub": {
+      "$comment": "物件模式副標；主標進場後由左側滑入。",
+      "fontSize": 52,
+      "fontWeight": 700,
+      "lineHeight": 1.2,
+      "color": "#FFD400",
+      "marginTop": 22,
+      "textShadow": "0 4px 14px rgba(0,0,0,.9)"
+    },
+    "enter": {
+      "$comment": "物件模式 seek-safe GSAP 進場；主標 0.1s 彈入，副標在 0.8s 從左滑入。",
+      "mainAtSec": 0.1,
+      "mainDurationSec": 0.35,
+      "mainFromScale": 0.8,
+      "mainEase": "back.out(1.6)",
+      "subAtSec": 0.8,
+      "subDurationSec": 0.4,
+      "subFromX": -80,
+      "subEase": "power3.out"
+    },
+    "style": {
+      "$comment": "物件模式預設 plain 完全沿用現況；openTitle.style=cover 才使用 cmchipk 封面級金橘字面、雙層描邊與深色副標橫幅。",
+      "default": "plain",
+      "cover": {
+        "gradientAngleDeg": 180,
+        "goldStopPct": 55,
+        "line1FontSize": 116,
+        "line2FontSize": 168,
+        "line1StrokePx": 8,
+        "line2StrokePx": 10,
+        "line1OuterStrokePx": 12,
+        "line2OuterStrokePx": 14,
+        "outerStrokeColor": "#FFFFFF",
+        "outlineShadow": "-2px -2px 0 #fff,2px -2px 0 #fff,-2px 2px 0 #fff,2px 2px 0 #fff,0 12px 30px rgba(0,0,0,.55)",
+        "subBackground": "rgba(43,21,0,.82)",
+        "subColor": "#FFFFFF",
+        "subPadding": "12px 28px",
+        "subBorderRadius": 12,
+        "subBorderBottomWidth": 4,
+        "subFromScale": 0.94
+      }
+    },
+    "kicker": {
+      "fontSize": 34,
+      "fontWeight": 700,
+      "lineHeight": 1.2,
+      "letterSpacing": ".08em",
+      "color": "#FFD400",
+      "marginBottom": 18,
+      "textShadow": "0 3px 10px rgba(0,0,0,.9)"
+    },
+    "title": {
+      "fontSize": 76,
+      "fontWeight": 700,
+      "lineHeight": 1.15,
+      "maxLines": 3,
+      "color": "#FFFFFF",
+      "textShadow": "-3px -3px 0 #09275A,3px -3px 0 #09275A,-3px 3px 0 #09275A,3px 3px 0 #09275A,0 8px 24px rgba(0,0,0,.85)"
+    }
+  },
+  "spotlight": {
+    "$comment": [
+      "spotlight 只在 main.config.json 給 0–0.6 時啟用；0 不追加陰影，composition 與舊版逐位元相同。",
+      "4000px 陰影鋪滿 984×1096 的素材舞台，#shot／#shot2 的 overflow:hidden 把影子留在格內。"
+    ],
+    "maxAlpha": 0.6,
+    "spreadPx": 4000,
+    "color": "#000000"
+  },
+  "brandFrame": {
+    "$comment": [
+      "brandFrame=true 時從 y=1700 疊到底部；放在素材之上、字幕之下，統一主播與 App 畫面的色溫。",
+      "底端只到 75% 不透明，保留主播與畫面細節，不把它做成第二條實色 banner。",
+      "color 是布林 true 的既有藍色；brandFrame=warm 才改用 theme.amber。"
+    ],
+    "color": "#09275A",
+    "top": 1700,
+    "angleDeg": 180,
+    "startAlpha": 0,
+    "endAlpha": 0.75
+  },
+  "emphasis": {
+    "$comment": [
+      "emphasis.json 存在才啟用。pop 右對齊在 x=600–1020、y=1200 帶內；list 固定在左側 x=60–620、y=1040 起。",
+      "兩者都停在字幕 y=1390 之上；進退秒數、色值、字級與 GSAP 位移全在這裡，emphasis.json 只留編輯內容與 holdSec。"
+    ],
+    "pop": {
+      "right": 60,
+      "top": 1200,
+      "maxWidth": 420,
+      "padding": "14px 28px",
+      "borderRadius": 999,
+      "background": "#FFD400",
+      "color": "#09275A",
+      "fontSize": 44,
+      "fontWeight": 700,
+      "lineHeight": 1.2,
+      "textAlign": "right",
+      "boxShadow": "0 12px 28px rgba(0,0,0,.38)",
+      "transformOrigin": "right center",
+      "entryScale": 0.6,
+      "rotationDeg": 0,
+      "inSec": 0.25,
+      "outSec": 0.2,
+      "inEase": "back.out(1.7)",
+      "outEase": "power2.in",
+      "stamp": {
+        "rotationDeg": -6,
+        "background": "#D92D3D",
+        "color": "#FFFFFF",
+        "boxShadow": "0 12px 28px rgba(64,0,0,.45)"
+      }
+    },
+    "list": {
+      "left": 60,
+      "top": 1040,
+      "width": 560,
+      "minHeight": 230,
+      "padding": "28px 30px",
+      "borderRadius": 24,
+      "background": "rgba(9,39,90,.82)",
+      "color": "#FFFFFF",
+      "boxShadow": "0 18px 42px rgba(0,0,0,.45)",
+      "title": {
+        "fontSize": 36,
+        "fontWeight": 700,
+        "lineHeight": 1.2,
+        "marginBottom": 18
+      },
+      "item": {
+        "fontSize": 40,
+        "fontWeight": 700,
+        "lineHeight": 1.25,
+        "marginTop": 12
+      },
+      "entryX": -24,
+      "cardInSec": 0.2,
+      "itemInSec": 0.25,
+      "outSec": 0.2,
+      "cardInEase": "power2.out",
+      "itemInEase": "power2.out",
+      "outEase": "power2.in"
+    }
   },
   "keepClear": {
     "$comment": [

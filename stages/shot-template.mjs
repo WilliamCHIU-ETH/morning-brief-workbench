@@ -50,6 +50,12 @@ export function imageSize(file) {
 }
 
 const num = (v) => typeof v === 'number' && Number.isFinite(v);
+const colorWithAlpha = (hex, alpha) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim());
+  if (!m) throw new Error(`spotlight.color 必須是 #RRGGBB，收到 ${hex}`);
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+};
 const rectOk = (r, W, H) => r && num(r.x) && num(r.y) && num(r.w) && num(r.h)
   && r.w > 0 && r.h > 0 && r.x >= 0 && r.y >= 0 && r.x + r.w <= W && r.y + r.h <= H;
 
@@ -89,7 +95,10 @@ export const SHOT = {
     }
     return null;
   },
-  render(C, d) {
+  render(C, d, { spotlight } = {}) {
+    const spotlightShadow = spotlight?.alpha > 0
+      ? `,0 0 0 ${spotlight.spreadPx}px ${colorWithAlpha(spotlight.color, spotlight.alpha)}`
+      : '';
     const s = STAGE_W / d.imageW;
     const shownH = (d.imageH - d.cropTop) * s;          // 裁掉狀態列後的高度（舞台像素）
     const minY = Math.min(0, STAGE_H - shownH);          // 最多往上捲到底
@@ -136,7 +145,7 @@ export const SHOT = {
       g2 = { y: Math.max(minY2, Math.min(0, STAGE_H / 2 - cy2)), b: bb, b2: bb2, yB };
       secCss = `#shot2{position:absolute;left:0;top:0;width:${STAGE_W}px;height:${r(shownH2)}px;overflow:hidden;will-change:transform;transform-origin:${r(bb.left + bb.width / 2)}px ${r(bb.top + bb.height / 2)}px}
 #shot2 img{position:absolute;left:0;top:${r(-sec.cropTop * s2)}px;width:${STAGE_W}px;height:${r(sec.imageH * s2)}px;display:block}
-#hl2{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55);pointer-events:none}
+#hl2{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55)${spotlightShadow};pointer-events:none}
 `;
       secBody = `
       <div id="shot2">
@@ -147,7 +156,7 @@ export const SHOT = {
     const css = `
 #shot{position:absolute;left:0;top:0;width:${STAGE_W}px;height:${r(shownH)}px;overflow:hidden;will-change:transform;transform-origin:${ox}px ${oy}px}
 #shot img{position:absolute;left:0;top:${r(-d.cropTop * s)}px;width:${STAGE_W}px;height:${r(d.imageH * s)}px;display:block}
-#hl{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55);pointer-events:none}
+#hl{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55)${spotlightShadow};pointer-events:none}
 ${secCss}`;
     const body = `      <div id="shot">
         <img src="${d.image}" alt="" width="${STAGE_W}" height="${r(d.imageH * s)}" />

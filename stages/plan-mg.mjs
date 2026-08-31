@@ -21,6 +21,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolveProject, readJson, writeJson } from './lib/project.mjs';
+import { greetingWindow, openTitleEnd as resolveOpenTitleEnd, resolveLeads } from './lib/lead.mjs';
 import { TEMPLATES } from './mg-templates.mjs';
 import { SHOT, imageSize } from './shot-template.mjs';
 
@@ -38,6 +39,50 @@ try { P = resolveProject(); } catch (e) {
   process.exit(2);
 }
 const WRITE = process.argv.includes('--write');
+
+const mainConfigFile = P.path('mainConfig');
+let mainConfig = {};
+if (fs.existsSync(mainConfigFile)) {
+  try { mainConfig = JSON.parse(fs.readFileSync(mainConfigFile, 'utf8')); }
+  catch (e) {
+    console.error(`main.config.json 不是合法 JSON：${e.message}`);
+    process.exit(1);
+  }
+}
+const spotlightAlpha = mainConfig.spotlight ?? 0;
+if (typeof spotlightAlpha !== 'number' || !Number.isFinite(spotlightAlpha) || spotlightAlpha < 0) {
+  console.error(`main.config.json 的 spotlight 必須是 0～0.6 之間的數字，收到 ${JSON.stringify(spotlightAlpha)}`);
+  process.exit(1);
+}
+const openTitleConfig = mainConfig.openTitle;
+const openTitleObject = openTitleConfig !== null && typeof openTitleConfig === 'object'
+  && !Array.isArray(openTitleConfig);
+if (![undefined, null, false, true].includes(openTitleConfig) && !openTitleObject) {
+  console.error(`main.config.json 的 openTitle 必須是 boolean 或物件，收到 ${JSON.stringify(openTitleConfig)}`);
+  process.exit(1);
+}
+const useOpenTitle = openTitleConfig === true || openTitleObject;
+const preRollSec = openTitleObject ? Number(openTitleConfig.preRollSec ?? 0) : 0;
+const needsLayout = spotlightAlpha > 0 || useOpenTitle;
+const layout = needsLayout ? readJson(P, 'layout') : null;
+const spotlightMax = spotlightAlpha > 0 ? Number(layout.spotlight?.maxAlpha) : null;
+if (spotlightAlpha > 0 && (!Number.isFinite(spotlightMax) || spotlightAlpha > spotlightMax)) {
+  console.error(`main.config.json 的 spotlight 必須是 0～${Number.isFinite(spotlightMax) ? spotlightMax : 'layout.spotlight.maxAlpha'} 之間的數字，收到 ${JSON.stringify(spotlightAlpha)}`);
+  process.exit(1);
+}
+const spotlight = spotlightAlpha > 0 ? {
+  alpha: spotlightAlpha,
+  color: layout.spotlight.color,
+  spreadPx: layout.spotlight.spreadPx,
+} : null;
+const leadSec = mainConfig.lead ?? 0;
+if (typeof leadSec !== 'number' || !Number.isFinite(leadSec) || leadSec < 0) {
+  console.error(`main.config.json 的 lead 必須是 >=0 的秒數，收到 ${JSON.stringify(leadSec)}`);
+  process.exit(1);
+}
+let openTitleEndSec = 0;
+try { openTitleEndSec = resolveOpenTitleEnd(openTitleConfig, layout); }
+catch (e) { console.error(e.message); process.exit(1); }
 
 // ── 原文對照:plan 的 anchor 是 clean 文字,抽取需要標點 ─────────────────────
 const raw = fs.readFileSync(P.path('script'), 'utf8');
@@ -183,11 +228,21 @@ function buildData(tid, f, slotText) {
 
 // ── 主流程 ─────────────────────────────────────────────────────────────────
 const plan = readJson(P, 'segmentPlan');
-const overrides = fs.existsSync(path.join(P.root, 'mg-overrides.json'))
-  ? JSON.parse(fs.readFileSync(path.join(P.root, 'mg-overrides.json'), 'utf8')) : {};
+const overridesFile = P.path('mgOverrides');
+const hasOverrides = fs.existsSync(overridesFile);
+let overrides = {};
+if (hasOverrides) {
+  try { overrides = JSON.parse(fs.readFileSync(overridesFile, 'utf8')); }
+  catch (e) {
+    console.error(`mg-overrides.json 不是合法 JSON：${e.message}`);
+    process.exit(1);
+  }
+}
 
 // 截圖計畫（capture-shots.mjs 寫出）。某格在這裡有 entry 就用 shot 版型放實機截圖，
-// 沒有的格才落到抽數字選版型。截圖優先於 overrides：那是會議裁定的方向，不是逐格偏好。
+// 沒有的格才落到抽數字選版型。截圖優先於「自動選版型」（會議裁定的方向）；
+// 但 mg-overrides.json **明寫** template 的格是編輯的明確決定，優先於截圖——
+// 2026-08-30 起這樣排序，理由：三大法人數字要用建構卡而不是 App 法人頁（口徑對不上）。
 const hasShotPlan = fs.existsSync(P.path('shotPlan'));
 const shotSlots = hasShotPlan ? (readJson(P, 'shotPlan').slots ?? {}) : {};
 function shotData(id) {
@@ -203,9 +258,89 @@ function shotData(id) {
   return d;
 }
 
-// 時長：有 ledger 用真值，否則用 plan 的估計上緣（比較保守）
+// 時長：有 ledger 用真值，否則用 plan 的估計上緣（比較保守）。付費前沒有 ledger 時
+// 無法知道逐格 room，前導一律 0；付費後重跑就會用共享 resolver 補上渲染長度。
 let ledger = null;
 try { ledger = readJson(P, 'segmentLedger'); } catch { /* 付費之前沒有 */ }
+if (!ledger) console.log('尚無 segment-ledger.json，素材格前導暫以 0s 規劃；付費後請重跑 plan-mg。');
+
+let charTimesCache;
+let charTimesUsed = false;
+let captionFallbackUsed = false;
+function loadCharTimes() {
+  if (charTimesCache !== undefined) return charTimesCache;
+  try {
+    const raw = readJson(P, 'charTimes');
+    const arr = Array.isArray(raw) ? raw : (raw.chars ?? raw.items ?? []);
+    charTimesCache = arr.length ? arr : null;
+    if (charTimesCache) charTimesUsed = true;
+  } catch { charTimesCache = null; }
+  return charTimesCache;
+}
+function fallbackGreetingWindow() {
+  let raw;
+  try { raw = readJson(P, 'captionLedger'); }
+  catch { return null; }
+  const captions = Array.isArray(raw) ? raw : (raw.captions ?? []);
+  const chars = captions.flatMap((caption) => [...String(caption.text ?? '')]
+    .map((ch) => ({ ch, start: caption.start, end: caption.end })));
+  captionFallbackUsed = true;
+  console.log('asr/script-char-times.json 不存在，問候夾限退回 caption-ledger.json。');
+  return greetingWindow(chars);
+}
+
+let leadById = new Map();
+if (ledger) {
+  let greetingEnd = 0;
+  if (leadSec > 0) {
+    const window = greetingWindow(loadCharTimes()) ?? (charTimesCache ? null : fallbackGreetingWindow());
+    greetingEnd = window ? Number((window.end + preRollSec).toFixed(4)) : 0;
+  }
+  const leadShots = ledger.segments.filter((segment) => segment.form === 'mg').map((segment) => ({
+    id: segment.id,
+    start: Number((segment.startSec + preRollSec).toFixed(4)),
+    duration: typeof segment.durationSec === 'number'
+      ? segment.durationSec : segment.endSec - segment.startSec,
+  }));
+  leadById = resolveLeads({ shots: leadShots, leadSec, openTitleEnd: openTitleEndSec, greetingEnd });
+}
+
+// 建構卡的資料只來自 mg-overrides.json（那是編輯寫的內容，不抽），這裡把 atText
+// 限定在該 ledger 段內唯一比對，再換成以 nominal 素材格起點為 0 的秒數。
+function resolveCard(s, data) {
+  const d = { ...data, items: (data.items ?? []).map((it) => ({ ...it })) };
+  const ct = loadCharTimes();
+  const segment = ledger?.segments.find((x) => x.id === s.id);
+  for (const it of d.items) {
+    if (!it.atText) continue;
+    if (!ct || !segment) { delete it.at; continue; }
+    const nominalSec = typeof segment.durationSec === 'number'
+      ? segment.durationSec : segment.endSec - segment.startSec;
+    const scoped = ct.filter((char) => Number(char.start) >= segment.startSec - 0.5
+      && Number(char.start) < segment.endSec);
+    const text = scoped.map((char) => char.ch ?? char.char ?? '').join('');
+    const hits = [];
+    for (let from = 0; from <= text.length;) {
+      const at = text.indexOf(it.atText, from);
+      if (at < 0) break;
+      hits.push(at);
+      from = at + 1;
+    }
+    const seconds = hits.map((at) => Number(scoped[at]?.start)).filter(Number.isFinite);
+    if (hits.length !== 1 || seconds.length !== 1) {
+      console.error(`格 ${s.id} 的建構卡 atText「${it.atText}」在該段命中 ${hits.length} 次；秒數：${seconds.length ? seconds.join('、') : '（無）'}。命中必須唯一。`);
+      process.exit(1);
+    }
+    const at = Number((seconds[0] - segment.startSec).toFixed(2));
+    if (!(at >= 0 && at < nominalSec)) {
+      console.error(`格 ${s.id} 的建構卡 atText「${it.atText}」得到 at=${at}s，不在 0～${nominalSec}s 的 nominal 素材格內。`);
+      process.exit(1);
+    }
+    it.at = at;
+  }
+  return d;
+}
+
 const durOf = (s) => {
   const hit = ledger?.segments.find((x) => x.id === s.id);
   if (hit) return { sec: hit.durationSec, from: 'ledger' };
@@ -221,22 +356,31 @@ for (const s of plan) {
   cursor = o.end + 1;
   if (s.form !== 'mg') continue;
   const f = extract(o.text);
-  const pick = shotSlots[s.id]
-    ? { id: 'shot', why: `shot-plan.json 有截圖（${shotSlots[s.id].page ?? shotSlots[s.id].image}）` }
-    : overrides[s.id]?.template
-      ? { id: overrides[s.id].template, why: 'mg-overrides.json 指定' }
+  const pick = overrides[s.id]?.template
+    ? { id: overrides[s.id].template, why: `mg-overrides.json 指定${shotSlots[s.id] ? '（蓋過 shot-plan 的截圖）' : ''}` }
+    : shotSlots[s.id]
+      ? { id: 'shot', why: `shot-plan.json 有截圖（${shotSlots[s.id].page ?? shotSlots[s.id].image}）` }
       : pickTemplate(f);
   const t = ALL[pick.id];
   if (!t) { console.error(`格 ${s.id}：未知版型 ${pick.id}`); process.exit(1); }
   const data = pick.id === 'shot'
-    ? shotData(s.id)
-    : { ...buildData(pick.id, f, o.text), ...(overrides[s.id]?.data ?? {}) };
+    ? { ...shotData(s.id), ...(overrides[s.id]?.data ?? {}) }
+    : pick.id === 'card'
+      ? resolveCard(s, overrides[s.id]?.data ?? {})
+      : { ...buildData(pick.id, f, o.text), ...(overrides[s.id]?.data ?? {}) };
   const err = pick.id === 'shot' && !(data.image && fs.existsSync(path.join(P.root, data.image)))
     ? `截圖檔不存在：${data.image || '（shot-plan 沒填 image）'}`
     : t.validate(data);
   const dur = durOf(s);
+  const nominalSec = Number(dur.sec.toFixed(2));
+  const lead = leadById.get(s.id) ?? {
+    actualLead: 0,
+    renderStart: ledger?.segments.find((segment) => segment.id === s.id)?.startSec ?? 0,
+    renderDuration: nominalSec,
+  };
   rows.push({
-    id: s.id, template: pick.id, why: pick.why, durationSec: Number(dur.sec.toFixed(2)),
+    id: s.id, template: pick.id, why: pick.why,
+    nominalSec, actualLead: lead.actualLead, durationSec: Number(lead.renderDuration.toFixed(2)),
     durationFrom: dur.from, sourceText: o.text, responsibility: s.responsibility,
     extracted: { numbers: f.numbers.map((n) => n.matched), enumMarker: f.enumMarker, contrast: f.contrast },
     data, invalid: err,
@@ -247,7 +391,7 @@ const bad = rows.filter((r) => r.invalid);
 console.log(`素材格 ${rows.length} 個　版型：${rows.map((r) => `${r.id}=${r.template}`).join('　')}`);
 console.log('');
 for (const r of rows) {
-  console.log(`格 ${r.id}  ${r.template.padEnd(13)} ${r.durationSec}s(${r.durationFrom})  ← ${r.why}`);
+  console.log(`格 ${r.id}  ${r.template.padEnd(13)} ${r.durationSec}s(${r.durationFrom}；nominal ${r.nominalSec}s + lead ${r.actualLead}s)  ← ${r.why}`);
   console.log(`         原文：${r.sourceText}`);
   console.log(`         資料：${JSON.stringify(r.data, null, 0)}`);
   if (r.invalid) console.log(`         不合法：${r.invalid}`);
@@ -261,14 +405,27 @@ if (WRITE) {
   }
   const dir = path.join(P.root, 'compositions');
   fs.mkdirSync(dir, { recursive: true });
+  const expectedCompositions = new Set(rows.map((row) => `${row.id}-${row.template}.html`));
+  for (const file of fs.readdirSync(dir).filter((name) => name.endsWith('.html'))) {
+    const ownsId = rows.some((row) => file.startsWith(`${row.id}-`));
+    if (ownsId && !expectedCompositions.has(file)) fs.rmSync(path.join(dir, file));
+  }
   for (const r of rows) {
     const t = ALL[r.template];
-    const { css, body: bodyHtml, tl } = t.render(C, r.data);
+    const { css, body: bodyHtml, tl } = t.render(C, r.data, { spotlight, lead: r.actualLead });
     const html = shell(`br${r.id}`, r.durationSec, css, bodyHtml, tl(r.durationSec), t.shiftY);
     fs.writeFileSync(path.join(dir, `${r.id}-${r.template}.html`), html);
   }
-  writeJson(P, 'mg-plan.json', { generatedFrom: P.rel('segmentPlan'), slots: rows },
-    { inputs: ['script', 'segmentPlan', ...(hasShotPlan ? ['shotPlan'] : [])] });
+  const mgPlan = spotlight
+    ? { generatedFrom: P.rel('segmentPlan'), spotlight: { alpha: spotlight.alpha }, slots: rows }
+    : { generatedFrom: P.rel('segmentPlan'), slots: rows };
+  if (leadSec > 0) mgPlan.lead = leadSec;
+  writeJson(P, 'mg-plan.json', mgPlan,
+    { inputs: ['script', 'segmentPlan', ...(ledger ? ['segmentLedger'] : []),
+      ...(hasShotPlan ? ['shotPlan'] : []), ...(hasOverrides ? ['mgOverrides'] : []),
+      ...(needsLayout ? ['layout'] : []),
+      ...(spotlight || leadSec > 0 || useOpenTitle ? ['mainConfig'] : []),
+      ...(charTimesUsed ? ['charTimes'] : []), ...(captionFallbackUsed ? ['captionLedger'] : [])] });
   console.log('');
   console.log(`已寫出 ${rows.length} 個 composition 到 compositions/，計畫在 mg-plan.json`);
 }

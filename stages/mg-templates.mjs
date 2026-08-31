@@ -238,6 +238,80 @@ ${d.lead ? `  tl.fromTo('#w-lead',{autoAlpha:0},{autoAlpha:1,duration:.32,ease:'
       return { css, body, tl };
     },
   },
+
+  // ── 建構卡（build + focus-dim）──────────────────────────────────────────────
+  // 2026-08-30 從 cmchipk 題材片 Db7CHk2pope 學來的兩招（docs/editing-techniques.md #3、#4）：
+  // 資料一格一格長出來、正在講的那格亮、講過的降灰。對標的三大法人系列也是用設計卡
+  // 而不是 App 頁放法人數字（docs/screenshot-standard.md #9）——App 法人頁的口徑與晨報稿
+  // 對不上（-170.1 vs -163.8），卡片直接放講稿的數字，對題性反而比截圖強。
+  //
+  // 每筆 item 的 at 是「該格亮起的秒數」，以素材格在 ledger 上的起點為 0。plan-mg 會把
+  // 主播念到 atText 的逐字時間換成 at；沒有 ASR 時（付費前）就用 defaults 等距排。
+  // opts.lead 是共享 resolver 算出的逐格 actualLead；composition 提前開始多少，關鍵幀就加多少。
+  card: {
+    shiftY: 0,
+    required: ['title', 'items'],
+    defaults: { title: '' },
+    validate(d) {
+      if (!Array.isArray(d.items) || d.items.length < 2 || d.items.length > 3) {
+        return 'card 需要 2～3 筆 items（每格 300px 高，第四格會壓到字幕禁區）';
+      }
+      for (const it of d.items) {
+        if (!it.label || it.value === undefined) return 'items 每筆需要 label 與 value';
+        if (it.at !== undefined && !(Number.isFinite(it.at) && it.at >= 0)) return 'items 的 at 必須是 >=0 的秒數';
+      }
+      return null;
+    },
+    render(C, d, opts = {}) {
+      const lead = Number(opts.lead) > 0 ? Number(opts.lead) : 0;
+      const N = d.items.length;
+      const rowH = 300, gap = 28, top0 = d.title ? 128 : 24;
+      // 兩格只佔舞台上半（756/1096px），下半空著像沒排完；整塊往舞台光學中心放（略偏上 40px）。
+      const blockH = top0 + N * rowH + (N - 1) * gap;
+      const off = Math.max(0, Math.round((1096 - blockH) / 2) - 40);
+      const tone = (it) => (it.tone === 'down' ? C.down : it.tone === 'up' ? C.up : C.text);
+      const css = `
+#k-title{position:absolute;left:0;top:${off}px;display:flex;align-items:center;gap:22px;font-size:56px;font-weight:700;line-height:1.15}
+#k-title i{display:block;width:12px;height:60px;border-radius:6px;background:${C.hi}}
+.krow{position:absolute;left:0;width:984px;height:${rowH}px;border-radius:28px;background:${C.bg2};border:5px solid ${C.line};padding:34px 44px}
+.krow .kl{font-size:40px;font-weight:700;color:${C.sub};line-height:1}
+.krow .kv{position:absolute;left:44px;top:104px;display:flex;align-items:baseline;gap:14px}
+.krow .kn{font-size:132px;font-weight:700;line-height:1;letter-spacing:-.01em}
+.krow .ku{font-size:52px;font-weight:700;line-height:1}
+.krow .kp{position:absolute;right:44px;top:40px;padding:10px 24px;border-radius:999px;background:${C.hi};color:${C.bg};font-size:34px;font-weight:700;line-height:1.1}
+${d.items.map((_, i) => `#k-r${i + 1}{top:${off + top0 + i * (rowH + gap)}px}`).join('\n')}
+`;
+      const row = (it, i) => `      <div class="krow" id="k-r${i + 1}">
+        <div class="kl">${it.label}</div>
+        <div class="kv"><span class="kn" id="k-n${i + 1}" style="color:${tone(it)}">${it.value}</span><span class="ku" style="color:${tone(it)}">${it.unit ?? ''}</span></div>
+        ${it.note ? `<div class="kp" id="k-p${i + 1}">${it.note}</div>` : ''}
+      </div>`;
+      const body = `${d.title ? `      <div id="k-title"><i></i><span>${d.title}</span></div>\n` : ''}${d.items.map(row).join('\n')}
+`;
+      const tl = (dur) => {
+        // dur 是含前導的渲染長度；at 仍以 nominal 起點為 0，所以加逐格 actualLead。
+        // 沒給 at 的格在 nominal 前 60% 等距排，不能把 lead 又算進內容長度。
+        const nominalDur = Math.max(0, dur - lead);
+        const ats = d.items.map((it, i) => Number.isFinite(it.at)
+          ? it.at + lead
+          : lead + 0.4 + (nominalDur * 0.6) * i / N);
+        const lines = [];
+        // 標題在 composition 一開始就進（前導期就是給它用的），不要留一段全黑的空舞台。
+        if (d.title) lines.push(`  tl.fromTo('#k-title',{x:-36,autoAlpha:0},{x:0,autoAlpha:1,duration:.36,ease:'power3.out'},0);`);
+        d.items.forEach((it, i) => {
+          const at = ats[i].toFixed(2);
+          // 先以 45% 亮度進場（畫面先於聲音），念到時再全亮＋黃框；前一格同時降灰。
+          lines.push(`  tl.fromTo('#k-r${i + 1}',{y:26,autoAlpha:0},{y:0,autoAlpha:.45,duration:.42,ease:'power3.out'},${Math.max(0, ats[i] - 0.5).toFixed(2)});`);
+          lines.push(`  tl.to('#k-r${i + 1}',{autoAlpha:1,borderColor:'${C.hi}',duration:.3,ease:'power2.out'},${at});`);
+          if (it.note) lines.push(`  tl.fromTo('#k-p${i + 1}',{scale:.6,autoAlpha:0},{scale:1,autoAlpha:1,duration:.3,ease:'back.out(1.7)'},${(ats[i] + 0.25).toFixed(2)});`);
+          if (i > 0) lines.push(`  tl.to('#k-r${i}',{autoAlpha:.5,borderColor:'${C.line}',duration:.4,ease:'power2.out'},${at});`);
+        });
+        lines.push(`  tl.to('${d.title ? '#k-title,' : ''}${d.items.map((_, i) => `#k-r${i + 1}`).join(',')}',{y:-30,duration:.5,ease:'power2.in'},${(dur - 0.6).toFixed(2)});`);
+        return '\n' + lines.join('\n') + '\n';
+      };
+      return { css, body, tl };
+    },
+  },
 };
 
 export const TEMPLATE_IDS = Object.keys(TEMPLATES);

@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { resolveProject } from './lib/project.mjs';
+import { requireFresh, resolveProject } from './lib/project.mjs';
 
 const HF = ['--yes', 'hyperframes@0.8.3'];
 let P;
@@ -75,6 +75,10 @@ function preflightSlots() {
 
   const ledger = P.path('segmentLedger');
   const mgPlan = path.join(P.root, 'mg-plan.json');
+  if (fs.existsSync(mgPlan)) {
+    try { requireFresh(P, 'mg-plan.json'); }
+    catch (e) { console.error(e.message); process.exit(1); }
+  }
   if (fs.existsSync(ledger) && fs.existsSync(mgPlan)) {
     const plan = JSON.parse(fs.readFileSync(mgPlan, 'utf8'));
     const slots = Array.isArray(plan) ? plan : (plan.slots ?? null);
@@ -96,7 +100,14 @@ if (cmd === 'slots' || cmd === 'all') {
   const dir = path.join(P.root, 'compositions');
   const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.endsWith('.html')) : [];
   if (!files.length) { console.error('compositions/ 裡沒有 html。先跑 plan-mg.mjs --write。'); process.exit(1); }
-  fs.mkdirSync(path.join(P.root, 'renders'), { recursive: true });
+  const rendersDir = path.join(P.root, 'renders');
+  fs.mkdirSync(rendersDir, { recursive: true });
+  const expectedRenders = new Set(files.map((file) => `${path.basename(file, '.html')}.mp4`));
+  const ownedIds = new Set(files.map((file) => path.basename(file, '.html').split('-')[0]));
+  for (const file of fs.readdirSync(rendersDir).filter((name) => name.endsWith('.mp4'))) {
+    const id = file.split('-')[0].replace(/\.mp4$/u, '');
+    if (ownedIds.has(id) && !expectedRenders.has(file)) fs.rmSync(path.join(rendersDir, file));
+  }
   for (const f of files) {
     const qa = stageOne(f);
     const { errs, codes } = checkDir(path.relative(P.root, qa));
