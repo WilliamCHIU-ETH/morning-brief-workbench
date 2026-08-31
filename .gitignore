@@ -16,3 +16,10 @@ projects/
 
 # 金鑰。每個 repo 各自持有一份，不進版控
 .env
+
+# 對標影片的本機素材（mp4、逐秒定格、轉錄）：有版權、也重，只留在本機。
+# 蒸餾出來的規則在 docs/editing-techniques.md 與 docs/reference-reels.md，那兩份進版控。
+docs/reference-reels/local/
+
+# 本機 launch 設定（指向使用者機器上的其他專案），不進版控
+.claude/launch.json
