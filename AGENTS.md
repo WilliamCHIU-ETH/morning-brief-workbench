@@ -10,13 +10,14 @@
 | 檢查講稿是否合格 | `npm run lint:script <project>/script.txt` |
 | 從講稿推導切段結構 | `npm run plan -- --project <dir> --write` |
 | 挑 MG 版型、抽資料、產出 composition | `node stages/plan-mg.mjs --project <dir> --write` |
-| 跑全部驗收門檻（目前 31 道，以 `contracts/acceptance.json` 為準） | `npm run gates -- --project <dir>` |
-| 主播生成（**唯一付費步驟，見下方協定**） | `node stages/heygen.mjs --project <dir> dryrun` |
+| 跑全部驗收門檻（目前 32 道，以 `contracts/acceptance.json` 為準） | `npm run gates -- --project <dir>` |
+| 配音合成（MiniMax 音檔路線；小額付費，見付費一節） | `node stages/voice-minimax.mjs --project <dir> dryrun`，確認後 `synth` |
+| 主播生成（**成本最高的付費步驟，見下方協定**） | `node stages/heygen.mjs --project <dir> dryrun` |
 | 加速主播影片 | `npm run speedup -- --project <dir>` |
 | ASR 逐字時間 | `npm run asr -- --project <dir>` |
 | 對齊、字幕、組裝 | `stages/align-script.mjs` → `build-segment-ledger` → `build-caption-ledger` → `build-main` |
 | 渲染素材格與成片 | `npm run render -- --project <dir> slots`，組裝後 `… final` |
-| 自動化實機截圖（iOS Simulator＋deep link） | `node stages/capture-shots.mjs --project <dir> [--dryrun]` |
+| 自動化實機截圖（iOS Simulator＋deep link） | `node stages/capture-shots.mjs --project <dir> [--dryrun] [--as-of YYYY-MM-DD]` |
 
 ## 已裁定要做、但還沒做的
 
@@ -26,7 +27,8 @@
   會議定的成功場景是「輸入晨報（docx）後端到端產出 mp4」——所以 docx 是你的輸入：自己讀
   （`/opt/anaconda3/bin/python3 -c "import docx"` 可用），依 `ROLE.md` 寫成 `script.txt`，選型跟著 docx 標題走。
 - **實機截圖取代動畫素材。** 會議裁定素材格全面改用 App 實機畫面，動畫素材（MG）全面取消。
-  目前一行程式都沒有；`plan-mg.mjs`／`mg-templates.mjs` 還在產動畫，那是過渡狀態，不是目標。
+  截圖鏈已上線（capture-shots → shot-plan → shot 版型；2026-08-31 起支援 `--as-of` 歷史日K）；
+  `plan-mg.mjs`／`mg-templates.mjs` 的 MG 版型只剩「沒有 shot-plan 的格」的 fallback——那是過渡狀態，不是目標。
   對標物是 IG `cmchipk` 的「大盤小報」「三大法人」系列，逐秒拆解在 `docs/reference-reels.md`；
   **素材格「哪句配哪頁、框什麼」的標準在 `docs/screenshot-standard.md`**（含反面清單：哪些句子該押回主播）。
   **截圖不是換掉視覺層而已**：素材格的句子必須指向一個可截的 App 畫面，這會反過來約束講稿。
@@ -57,10 +59,17 @@ npm run plan -- --project projects/20260827-<主題> --write
 #    前提：iPhone 17 Pro 模擬器裝有 [internal-identifier-removed] 且已登入（見下方「截圖通道」）
 node stages/capture-shots.mjs --project projects/20260827-<主題> --dryrun   # 先看每格解析到哪一頁
 node stages/capture-shots.mjs --project projects/20260827-<主題>            # 正式；用過去的講稿測試時加 --test-mode
+#    晨報引用「前一交易日收盤」，截圖時間晚於當日 09:00 就必須加 --as-of <該交易日>：
+#    日K歷史選棒＋AX 驗日期與收盤（時間語意與幾何代價見 docs/screenshot-standard.md）
 #    某格印「沒有 focus」＝那句話沒有可指的東西 → 寫進 plan-hints.json 的 presenter 押回主播，重跑 3
 
 # 7. 產出素材格 composition（有 shot-plan 的格自動用 shot 版型，其餘才落到 MG 版型）
 node stages/plan-mg.mjs --project projects/20260827-<主題> --write
+
+# 7.5 填編輯意圖（程式不代填）：main.config.json 的 openTitle.main（建議 8 字，會走 4/4 斷行）
+#     與 sub（骨架刻意留空，build-main 會擋空字串）；emphasis.json 清單卡
+#     （每項必須加新資訊、不復述旁白——四條規則見 docs/editing-techniques.md）；
+#     voice.json 的 pauses（骨架已帶兩支正式樣本共用的校準值，只有停頓要自己標）
 
 # 8. 驗收
 npm run gates -- --project projects/20260827-<主題>
@@ -86,13 +95,18 @@ npm run gates -- --project projects/20260827-<主題>
 ### 核准之後：一路跑到成片，不要停
 
 ```bash
-# 9-10. 主播生成（唯一人工關卡，協定見下一節）
+# 9. 配音（MiniMax 音檔路線；小額付費，每次合成約 US$0.05 量級）
+node stages/voice-minimax.mjs --project <dir> dryrun   # 不花錢：驗 voice.json、分段與停頓
+node stages/voice-minimax.mjs --project <dir> synth    # 付費：產出 voice/track.mp3
+#     花掉的配音成本要在第 10 步的核准訊息裡一併列出
+
+# 10. 主播生成（唯一人工關卡，協定見下一節）；有 voice/track.mp3 時自動走音檔路線
 npm run heygen -- --project <dir> dryrun
 #     ↑ 出示講稿＋payload＋成本，AskUserQuestion 取得同意
 npm run heygen -- --project <dir> create --i-have-user-approval
 npm run heygen -- --project <dir> poll
 
-# 11. 加速（必須守 fps 判準）
+# 11. 加速（必須守 fps 判準；音檔路線語速已在合成端決定，這一步自動只複製不拉伸）
 npm run speedup -- --project <dir>
 
 # 12. ASR 與強制對齊
@@ -112,7 +126,7 @@ npm run render -- --project <dir> final
 npm run gates -- --project <dir>
 ```
 
-**第 9 步之後不要再回來問。** 使用者已經在唯一的關卡點過頭了，中間的產物
+**第 10 步之後不要再回來問。** 使用者已經在唯一的關卡點過頭了，中間的產物
 （加速後的長度、ASR 的字數、切段的秒數）都不需要他決定——那些有 gate 在管。
 
 某一步失敗就**當場修再繼續**，不要把失敗當成回報點停下來。gate 未通過也一樣：
@@ -123,7 +137,7 @@ npm run gates -- --project <dir>
 一則回覆，四樣：
 
 1. **成片路徑**與長度、檔案大小
-2. **全量 gate 報告** —— 契約裡每一道的狀態（目前 31 道＋主播 payload 那道），未通過與略過的逐條說明
+2. **全量 gate 報告** —— 契約裡每一道的狀態（目前 32 道＋主播 payload 那道），未通過與略過的逐條說明
 3. **與黃金樣本的差異** —— 覆蓋率、片長、轉折數、字幕貼齊率，並排
 4. **你自己看過之後的判斷** —— 哪裡可能不好。gate 管不到主播像不像真人、
    B-roll 好不好看、講稿有不有趣，那三件要你先講，不要等使用者發現
@@ -141,7 +155,9 @@ npm run gates -- --project <dir>
 
 ## 唯一的付費關卡：協定不可省略
 
-主播生成是整條線**唯一不可逆且有成本**的步驟。流程固定三步，順序不得調換：
+付費步驟有兩個，人工關卡只有一個。MiniMax 配音是小額付費（每次合成約 US$0.05 量級、
+金鑰 `MINIMAX_API_KEY` 同樣在本 repo 的 `.env`），synth 前用 dryrun 自查、花費列進主播核准訊息即可。
+主播生成才是整條線**成本最高且不可逆**的步驟。流程固定三步，順序不得調換：
 
 **第一步：dryrun。不花錢。**
 
@@ -212,8 +228,9 @@ lint 會檢查標題第一行必須是 `MM/DD 台股晨報`。
 
 ## 怎麼寫一支好講稿
 
-**規則在 [`ROLE.md`](ROLE.md)，寫稿之前先讀。** 那不是格式清單，是五條有機制與否證條件的規則：
-HOOK 前置、問候降位、台股美股合併並服務於論證、段落之間必須有債務關係、無轉折段落優先砍。
+**規則在 [`ROLE.md`](ROLE.md)，寫稿之前先讀。** 那不是格式清單，是七條有機制與否證條件的規則：
+HOOK 前置、問候降位、台股美股合併並服務於論證、段落之間必須有債務關係、無轉折段落優先砍，
+加上 2026-08-31 增補的「收尾必須回答 HOOK」與「轉折要給去向」。
 
 最重要的一個概念是**轉折的操作型定義**：段落 N+1 必須使觀眾改變對段落 N 的判斷。
 只是補充新事實不算。V1／V2 的中段轉折數是 **0**，那就是外部 audit 說「平鋪直述」的結構成因。

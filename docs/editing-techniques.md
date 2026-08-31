@@ -44,24 +44,39 @@ Db7CHk2pope 是使用者 2026-08-30 指定的「有剪輯手感」範本。
 ## 技法目錄
 
 狀態：未試／草稿中／keep／drop／做不出來（附原因）。
+2026-08-31 回寫：出處＝兩支正式樣本 0825 光環 V3（`projects/20260825-guanghuan-v3-test`）與
+0831 金居 v7（`projects/20260831-jinju-copper-test`），main.config 逐欄相同；keep 的招已收為
+`init-project.mjs` 的新專案預設（commit 見 git log `feat(init)`）。
 
 | # | 技法（EN／中） | 觀眾感受到什麼 | 對標用法 | 我們的原語（HyperFrames＝HTML/CSS/GSAP） | 狀態 |
 |---|---|---|---|---|---|
 | 1 | A-roll / B-roll、cut-away／cut-back | 講事實時看證據，講判斷時看人 | 6 個剪點全是這個 | planner 已做（素材格＝cut-away） | keep（既有） |
-| 2 | Lead the picture（畫面前導） | 畫面比聲音早半步，像剪輯師知道下一句 | 卡片在唸到數字前約 0.5s 先灰灰地出現，唸到時亮 | 素材格視覺起點提前 0.3–0.5s；黃框亮起對齊字時間 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 3 | Build / Reveal（漸進建構） | 資訊一拍進一個，跟得上 | 卡片元素逐個進場 | GSAP timeline，關鍵幀對齊 ASR 逐字時間 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 4 | Focus-dim（亮一格、暗其餘） | 眼睛只落在正在講的那格 | 講過的格降灰、正在講的橘框 | opacity／filter 切換 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
+| 2 | Lead the picture（畫面前導） | 畫面比聲音早半步，像剪輯師知道下一句 | 卡片在唸到數字前約 0.5s 先灰灰地出現，唸到時亮 | 素材格視覺起點提前 0.3–0.5s；黃框亮起對齊字時間 | keep（兩支正式採 lead 0.4，init 預設）。已知代價：仍有 0.3–0.4s 的字幕／畫面錯配點（0831 v7 REVIEW F-05，MINOR，使用者未裁） |
+| 3 | Build / Reveal（漸進建構） | 資訊一拍進一個，跟得上 | 卡片元素逐個進場 | GSAP timeline，關鍵幀對齊 ASR 逐字時間 | keep（以 emphasis list 逐項進場實現）；獨立建構卡版型 `card` 做出但兩支正式都選截圖版，保留備用 |
+| 4 | Focus-dim（亮一格、暗其餘） | 眼睛只落在正在講的那格 | 講過的格降灰、正在講的橘框 | opacity／filter 切換 | keep（emphasis list 唸到亮起、講過降灰） |
 | 5 | Callback（回訪同一張卡） | 敘事有記憶，不是一格一張圖 | 5s 的卡在 15s 回來長第二格 | 同一 composition 帶狀態掛兩格；planner 需「card thread」概念 | 未試 |
-| 6 | Persistent title strap（常駐標題條、chyron、bug） | 任何一秒滑進來都知道在講什麼 | 右上白框大標、左上品牌章，含插入格 | 標題板改放 HOOK，全片常駐 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 7 | On-shot title over defocus（模糊主播疊大標＋rack focus） | 開場不是另一張卡，是同一個人「對焦」進來 | 0–2s | avatar 層 CSS blur → 0，大標淡出 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 8 | Emphasis pop（貼紙字、callout） | 關鍵詞被「指」出來 | 47s 胸前彈字 | GSAP scale-in 藥丸；哪個詞彈＝編輯判斷（agent 寫） | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 9 | Spotlight（黃框外壓暗） | 框住的東西更亮 | 對標用橘框＋其餘降灰 | `box-shadow: 0 0 0 4000px rgba(0,0,0,.35)` 在框元素上 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
+| 6 | Persistent title strap（常駐標題條、chyron、bug） | 任何一秒滑進來都知道在講什麼 | 右上白框大標、左上品牌章，含插入格 | 標題板改放 HOOK，全片常駐 | keep（titleBoard mode=hook＋accent=gold，init 預設） |
+| 7 | On-shot title over defocus（模糊主播疊大標＋rack focus） | 開場不是另一張卡，是同一個人「對焦」進來 | 0–2s | avatar 層 CSS blur → 0，大標淡出 | keep（openTitle 物件模式 style=cover：金色雙行大標＋preRollSec 2.5 靜默拍；main 建議 8 字走 4/4 斷行，7 字會產生孤字換行；init 預設、main/sub 留空給編輯填） |
+| 8 | Emphasis pop（貼紙字、callout） | 關鍵詞被「指」出來 | 47s 胸前彈字 | GSAP scale-in 藥丸；哪個詞彈＝編輯判斷（agent 寫） | list 型 keep（兩支正式各兩張清單卡）；pop／stamp 做得出來但未進正式（0825 使用者選 list），編輯規則見下節 |
+| 9 | Spotlight（黃框外壓暗） | 框住的東西更亮 | 對標用橘框＋其餘降灰 | `box-shadow: 0 0 0 4000px rgba(0,0,0,.35)` 在框元素上 | keep（spotlight 0.35，init 預設） |
 | 10 | Redaction blur（模糊當 teaser） | 好奇缺口 | 29–34s 名單打模糊 | CSS blur；晨報無 CTA 不用，但可做「模糊背景＋清晰頁首」堆疊 | 不適用（記錄） |
-| 11 | Brand frame＋grade（統一色系、光暈邊框） | 每一格都是同一支片 | 上下橘色光暈，卡、標、貼紙同色系 | CSS 漸層疊圖；濾鏡壓在主播影片上有畫質風險 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 12 | Music bed＋SFX（底樂、音效） | 「有人在後面做」的最便宜證據 | 全程底樂；彈出處大概有音效（未以耳驗證） | `layout.bgm` 早就有、V2 沒掛；SFX 要授權素材 | 草稿中（V3，intents/2026-08-30-editorial-hand.md §7） |
-| 13 | Voice prosody（人聲韻律） | 像人在講，不像在唸 | 長句、口語接頭、真人語調 | TTS 參數解不了音色與口音；克隆源與真人配音是候選 | 做不出來（現階段；克隆聲與系統聲皆試過，見 intent §7） |
+| 11 | Brand frame＋grade（統一色系、光暈邊框） | 每一格都是同一支片 | 上下橘色光暈，卡、標、貼紙同色系 | CSS 漸層疊圖；濾鏡壓在主播影片上有畫質風險 | drop（做得出來；0825 出過「含底部漸層版」，使用者選無漸層版，兩支正式 brandFrame:false） |
+| 12 | Music bed＋SFX（底樂、音效） | 「有人在後面做」的最便宜證據 | 全程底樂；彈出處大概有音效（未以耳驗證） | `layout.bgm` 早就有、V2 沒掛；SFX 要授權素材 | bgm keep（init 預設 true）；SFX 未試 |
+| 13 | Voice prosody（人聲韻律） | 像人在講，不像在唸 | 長句、口語接頭、真人語調 | TTS 參數解不了音色與口音；克隆源與真人配音是候選 | keep（解法改走 MiniMax 克隆聲＋分段語速 hook/body/close＋`<#秒#>` 停頓標記＋口語改寫，兩支正式採用，`stages/voice-minimax.mjs`；音色天花板仍在——與真人聲仍有差距） |
 | 14 | Spoken sentence structure（口語句構） | 「AI 味」有一半在句子 | 「我們先看盤面」「今天答案一好一壞」 | ROLE.md 補長句與接頭規則 | 未試（V4） |
 | 15 | Presenter depth（棚、道具、手勢跟內容） | 人是活的 | 坐姿桌麥、手勢隨語意 | avatar_iv 的 motion_prompt 是全片一句、背景烙在照片裡 | 做不出來（現階段） |
+
+## emphasis 卡片的編輯規則（2026-08-31 audit 固化）
+
+`emphasis.json` 的內容是編輯判斷（agent 寫），但四條底線不是品味問題：
+
+1. **每一項必須加新資訊**，不得復述旁白剛講過或正在講的句子。事故：0831 卡片寫
+   「營收創新高」，但旁白 20 秒前講過——正確方向是「新高有一半是銅價」（使用者原話：
+   「這個之前就講過了，應該要寫『新高與銅價相關』類似這樣」）。
+2. **untilMatch 不可壓進下一個素材格**：build-main 容許的前導收合重疊是 0s，超過會擋。
+   把 untilMatch 收在進素材格之前的句子上。
+3. **標題可以用問句延續 HOOK 的債務**（「金居憑什麼漲停？」「今天先看兩件事」）。
+4. **收尾段不配卡**：收尾要回答 HOOK（見 ROLE.md），不是再開一張新卡。
 
 ## 怎麼用這份檔案
 
