@@ -427,7 +427,7 @@
     "$afterAvatarNote": "只要 avatar/raw.mp4 存在，就代表已經付費生成過，這批全部變成必要。"
   },
   "calibration": {
-    "$note": "成品語速（加速之後）的校準區間。這是整條線唯一的字數→片長換算依據，lint 與 plan-segments 都從這裡讀，不得各自寫死。",
+    "$note": "成品語速（加速之後）的校準區間。這是整條線唯一的字數→片長換算依據，lint 與 plan-segments 都從這裡讀，不得各自寫死。 音檔路線（voice.json 存在）改用 audioRouteRateBand；文字路線維持 rateBand。",
     "rateBand": [
       4.7,
       4.91
@@ -473,7 +473,45 @@
     "derivation": "五個實測點跨 220–329 字，離散度 4.4%，取上下緣為區間。",
     "appliesTo": "ffmpeg 加速路徑（API 1.2x 得 4.76；網頁 Studio 1.1x 實測 4.86，兩者都落在區間內）。",
     "doesNotApplyTo": "HeyGen voice_settings.speed。TTS 改速是重新合成而非時間拉伸，那條路徑的字/秒尚未量測，見 avatar-generation.json 的 candidates。",
-    "source": "marketing-video/晨報講稿時長換算表.md"
+    "source": "marketing-video/晨報講稿時長換算表.md",
+    "audioRouteRateBand": [
+      3.69,
+      3.91
+    ],
+    "audioRouteUnit": "clean chars/sec（成品＝合成軌原速，無 ffmpeg 拉伸）",
+    "audioRouteMeasuredPoints": [
+      {
+        "id": "PROD-0831-JINJU-V7",
+        "cleanChars": 232,
+        "trackSec": 62.12,
+        "rate": 3.73
+      },
+      {
+        "id": "PROD-0831-JINJU-V1",
+        "cleanChars": 225,
+        "trackSec": 60.326,
+        "rate": 3.73
+      },
+      {
+        "id": "COLD-0827-QIANGMAO-A",
+        "cleanChars": 246,
+        "trackSec": 65.8,
+        "rate": 3.74
+      },
+      {
+        "id": "COLD-0827-QIANGMAO-B",
+        "cleanChars": 221,
+        "trackSec": 59.905,
+        "rate": 3.69
+      },
+      {
+        "id": "PROD-0831-JINJU-229",
+        "cleanChars": 229,
+        "trackSec": 58.566,
+        "rate": 3.91
+      }
+    ],
+    "audioRouteDerivation": "五個實測點跨 221–246 字（MiniMax speech-2.8-hd、分段 speed hook1.25/body1.15/close1.08、gap 0.45s；pauses 逐支不同造成離散），取上下緣。出處：2026-09-01 冷啟動 E2E——文字路線的 4.7–4.91 用在音檔路線低估片長，246 字被預估 60.6s、實測 65.8s 超過 duration 上限，浪費一次合成費。"
   },
   "planning": {
     "$note": "plan-segments.mjs 的生成目標，不是驗收上下界。生成器瞄準黃金樣本 v4c 的節奏（它是唯一通過人眼 audit 的成品）；驗收用 gates 那組依對標片放寬的包絡。兩者刻意不同：generator 對準中心，gate 守邊界。2026-08-29 事故：把 gate 的 min-presenter／max-material-run／maxCoverage 依對標片放寬後，planner 跟著讀那組數字，黃金樣本的 plan 形狀就變了（回歸測試抓到）。改這裡必須重跑 test/plan-segments.test.mjs，黃金樣本形狀不得變。",

@@ -48,7 +48,8 @@ for (const [k, v] of Object.entries({ MIN_PRESENTER, MAX_MATERIAL_RUN, MAX_COVER
 }
 
 // 語速區間與素材格上限都從契約讀，不在程式裡重複門檻數字。
-const RATE = acceptance.calibration.rateBand;
+// 預設文字路線；resolveProject 之後若專案有 voice.json 換成音檔路線帶（見 lint-script.mjs 同款註解）。
+let RATE = acceptance.calibration.rateBand;
 if (!Number.isFinite(MAX_MATERIAL_SLOT) || MAX_MATERIAL_SLOT <= 0) {
   throw new Error('acceptance.json 的 plan.material-slot-length.threshold.maxSec 必須是正數');
 }
@@ -63,6 +64,7 @@ try { P = resolveProject(); } catch (e) {
   console.error('用法：node stages/plan-segments.mjs --project <dir> [--write] [--alternatives N]');
   process.exit(2);
 }
+if (fs.existsSync(path.join(P.root, 'voice.json'))) RATE = acceptance.calibration.audioRouteRateBand;
 const argv = process.argv.slice(2);
 const flag = (n, d) => { const i = argv.indexOf(`--${n}`); return i >= 0 && argv[i + 1] && !argv[i + 1].startsWith('--') ? argv[i + 1] : d; };
 const WRITE = argv.includes('--write');

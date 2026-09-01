@@ -28,8 +28,18 @@ const gate = (id) => acceptance.gates.find((g) => g.id === id)?.threshold ?? {};
 // ── 校準常數 ────────────────────────────────────────────────────────────────
 // 語速區間從契約讀，不在這裡寫死——本 repo 自己的原則是「門檻只在一處定義」。
 // 五個實測點、推導與適用範圍都在 contracts/acceptance.json 的 calibration。
-const [RATE_MIN, RATE_MAX] = acceptance.calibration.rateBand;
-const TARGET_SEC = { min: 42, max: 55 }; // V4c 48.6s 通過；V2 60.5s 被判定太長
+// 路線判定：script.txt 旁有 voice.json 就是音檔路線（MiniMax，合成端定速、無 ffmpeg 拉伸），
+// 用 audioRouteRateBand；否則文字路線用 rateBand。2026-09-01 冷啟動 E2E：
+// 音檔路線用文字帶會低估片長（246 字估 60.6s、實測 65.8s），白花一次合成費。
+// 片長目標同樣從契約讀（ledger.duration-in-target），不再硬編碼——
+// 2026-08-30 上限已改 65s，這裡曾殘留 55s 的舊值。
+const TARGET_SEC = (() => {
+  const th = gate('ledger.duration-in-target');
+  if (!Number.isFinite(th.minSec) || !Number.isFinite(th.maxSec)) {
+    throw new Error('acceptance.json 缺 ledger.duration-in-target 的 minSec/maxSec，lint 無法估片長。');
+  }
+  return { min: th.minSec, max: th.maxSec };
+})();
 
 // ── 禁用寫法（晨報腳本_ROLE.md「禁用寫法」節） ───────────────────────────────
 const BANNED = [
@@ -139,6 +149,10 @@ for (const m of body.matchAll(/（[^）]{6,}）/g)) {
 }
 
 // ── 字數與片長 ─────────────────────────────────────────────────────────────
+const audioRoute = fs.existsSync(path.join(path.dirname(path.resolve(file)), 'voice.json'));
+const [RATE_MIN, RATE_MAX] = audioRoute
+  ? acceptance.calibration.audioRouteRateBand
+  : acceptance.calibration.rateBand;
 const estMin = cleanCount / RATE_MAX;
 const estMax = cleanCount / RATE_MIN;
 const lenGate = gate('script.length');
