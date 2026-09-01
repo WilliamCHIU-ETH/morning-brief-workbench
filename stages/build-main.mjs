@@ -397,11 +397,17 @@ const materialWindows = renderShots.map((shot) => ({
 }));
 const alignEmphasisExit = ({ where, label, displayStart, exitAnchor, naturalEnd, exitMatch = null }) => {
   const EPS = 0.0001;
-  const aligned = materialWindows.find((shot) => shot.renderStart < shot.nominalStart - EPS
+  // 段首第一字常比 ledger cut 晚幾十毫秒；文字錨若就是下一段（或其視覺窗口）的前綴，
+  // 語意切點仍是段界，不能因 ASR 的起音延遲或淡出尾巴讓卡片壓住素材。視覺窗口
+  // 沒有前導時 renderStart == nominalStart，所以不能只靠前導區間判斷：只要退場
+  // 區間（錨到淡出結束）確實觸到該格開頭，就收攏到 renderStart。
+  const ASR_ONSET_SLACK = 0.15;
+  const aligned = materialWindows.find((shot) => (shot.renderStart < shot.nominalStart - EPS
     && ((exitAnchor >= shot.renderStart - EPS && exitAnchor <= shot.nominalStart + EPS)
-      // 強制對齊後，段首第一字常比 ledger cut 晚幾十毫秒；文字錨若就是下一段前綴，
-      // 語意切點仍是段界，不能因 ASR 的起音延遲讓卡片壓住素材。
-      || (exitMatch && String(shot.anchor).startsWith(exitMatch))));
+      || (exitMatch && String(shot.anchor).startsWith(exitMatch))))
+    || (exitMatch && String(shot.anchor).startsWith(exitMatch)
+      && exitAnchor <= shot.renderStart + ASR_ONSET_SLACK
+      && naturalEnd > shot.renderStart - EPS));
   const exitAt = aligned ? aligned.renderStart : naturalEnd;
   const advance = aligned ? Math.max(0, n4(exitAnchor - aligned.renderStart)) : 0;
   for (const shot of materialWindows) {
