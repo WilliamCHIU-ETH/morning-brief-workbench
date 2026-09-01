@@ -300,9 +300,8 @@ ${d.items.map((_, i) => `#k-r${i + 1}{top:${off + top0 + i * (rowH + gap)}px}`).
         if (d.title) lines.push(`  tl.fromTo('#k-title',{x:-36,autoAlpha:0},{x:0,autoAlpha:1,duration:.36,ease:'power3.out'},0);`);
         d.items.forEach((it, i) => {
           const at = ats[i].toFixed(2);
-          // 先以 45% 亮度進場（畫面先於聲音），念到時再全亮＋黃框；前一格同時降灰。
-          lines.push(`  tl.fromTo('#k-r${i + 1}',{y:26,autoAlpha:0},{y:0,autoAlpha:.45,duration:.42,ease:'power3.out'},${Math.max(0, ats[i] - 0.5).toFixed(2)});`);
-          lines.push(`  tl.to('#k-r${i + 1}',{autoAlpha:1,borderColor:'${C.hi}',duration:.3,ease:'power2.out'},${at});`);
+          // R3：item 唸到才進場，不先以半透明把答案露出；下一項進場時，已講項留在場上降灰。
+          lines.push(`  tl.fromTo('#k-r${i + 1}',{y:26,autoAlpha:0},{y:0,autoAlpha:1,borderColor:'${C.hi}',duration:.42,ease:'power3.out'},${at});`);
           if (it.note) lines.push(`  tl.fromTo('#k-p${i + 1}',{scale:.6,autoAlpha:0},{scale:1,autoAlpha:1,duration:.3,ease:'back.out(1.7)'},${(ats[i] + 0.25).toFixed(2)});`);
           if (i > 0) lines.push(`  tl.to('#k-r${i}',{autoAlpha:.5,borderColor:'${C.line}',duration:.4,ease:'power2.out'},${at});`);
         });

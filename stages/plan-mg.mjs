@@ -22,6 +22,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolveProject, readJson, writeJson } from './lib/project.mjs';
 import { greetingWindow, openTitleEnd as resolveOpenTitleEnd, resolveLeads } from './lib/lead.mjs';
+import { computeVisualWindow, resolveOrderedBeatTimes } from './lib/rhythm.mjs';
 import { TEMPLATES } from './mg-templates.mjs';
 import { SHOT, imageSize } from './shot-template.mjs';
 
@@ -29,6 +30,9 @@ import { SHOT, imageSize } from './shot-template.mjs';
 const ALL = { ...TEMPLATES, shot: SHOT };
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+const acceptance = JSON.parse(fs.readFileSync(path.join(here, '..', 'contracts', 'acceptance.json'), 'utf8'));
+const visualWindowThreshold = acceptance.gates.find((gate) => gate.id === 'shot.visual-window')?.threshold;
+if (!visualWindowThreshold) throw new Error('contracts/acceptance.json 缺 shot.visual-window.threshold');
 const require = createRequire(import.meta.url);
 const { getBodyAfterVoice, cleanBodyWithIndex } = require(path.join(here, 'script-utils.js'));
 
@@ -305,6 +309,73 @@ if (ledger) {
   leadById = resolveLeads({ shots: leadShots, leadSec, openTitleEnd: openTitleEndSec, greetingEnd });
 }
 
+// shot-plan 只負責空間。focus／focus2／second 依序各需要一個「真的命中畫面」的 target，
+// 到這裡才用 ASR 字時間把文字錨換成拍點。second.focus2 是同一個 second 主張內的細部
+// 收框，不另造一個沒有文字錨的拍點；它會在 second 拍後接續 tween。
+function resolveShotRhythm(slot, data, lead) {
+  if (!ledger) return { beats: [], visualWindow: null };
+  const segment = ledger.segments.find((entry) => String(entry.id) === String(slot.id));
+  if (!segment) throw new Error(`格 ${slot.id} 在 segment-ledger.json 找不到，無法計算視覺窗口。`);
+  const charTimes = loadCharTimes();
+  if (!charTimes) {
+    throw new Error(`格 ${slot.id} 是 shot，但缺 asr/script-char-times.json，無法把 targets 解析成拍點；先跑 ASR／align，再重跑 plan-mg。`);
+  }
+
+  const specs = [
+    { kind: 'focus', rect: 'focus' },
+    ...(data.focus2 ? [{ kind: 'focus2', rect: 'focus2' }] : []),
+    ...(data.second ? [{ kind: 'second', rect: 'second.focus' }] : []),
+  ];
+  const targets = (data.targets ?? []).map((target, targetIndex) => ({ ...target, targetIndex }))
+    .filter((target) => target.target !== null && target.target !== undefined
+      && String(target.target).length && typeof target.by === 'string' && target.by.length);
+  if (targets.length < specs.length) {
+    throw new Error(`格 ${slot.id} 有 ${specs.length} 個空間拍點（${specs.map((spec) => spec.rect).join('、')}），`
+      + `但 shot-plan.json 只有 ${targets.length} 個帶 by 的 target。每個框／換頁都要有該句中的文字錨；`
+      + '請重截讓 target 與 focus 成對，或改寫 responsibility／用 plan-hints.json 押回主播。');
+  }
+  const selected = targets.slice(0, specs.length);
+  let timed;
+  try {
+    timed = resolveOrderedBeatTimes({
+      charTimes,
+      segment,
+      anchors: selected.map((target) => String(target.target)),
+      minGapSec: Number(visualWindowThreshold.minBeatGapSec),
+    });
+  } catch (error) {
+    throw new Error(`格 ${slot.id} 的拍點無法解析：${error.message} `
+      + 'shot-plan 的 target 必須逐一存在於該格句子且照字序排列；請重截，或改寫 responsibility／用 plan-hints.json 押回主播。');
+  }
+  const beats = timed.map((beat, index) => ({
+    ...specs[index],
+    anchor: beat.anchor,
+    targetIndex: selected[index].targetIndex,
+    by: selected[index].by,
+    atSec: beat.atSec,
+    endSec: beat.endSec,
+    rawAtSec: beat.rawAtSec,
+    rawEndSec: beat.rawEndSec,
+    localSec: Number((beat.atSec - segment.startSec + lead.actualLead).toFixed(4)),
+    localEndSec: Number((beat.endSec - segment.startSec + lead.actualLead).toFixed(4)),
+    timing: beat.timing,
+  }));
+  const visualWindow = computeVisualWindow({
+    segmentStartSec: segment.startSec,
+    segmentEndSec: segment.endSec,
+    beats,
+    leadSec: Number(visualWindowThreshold.leadSec),
+    tailSec: Number(visualWindowThreshold.tailSec),
+    // 2s 是 gate 硬下界；單拍靜態 shot 以 3s 為規劃中心，對齊本次 audit 對格 04 的 3–4s 判準。
+    minSec: beats.length === 1
+      ? Number(visualWindowThreshold.singleBeatTargetMinSec ?? visualWindowThreshold.minSec)
+      : Number(visualWindowThreshold.minSec),
+    maxSec: Number(visualWindowThreshold.maxSec),
+    fadeSec: Number(visualWindowThreshold.fadeSec),
+  });
+  return { beats, visualWindow };
+}
+
 // 建構卡的資料只來自 mg-overrides.json（那是編輯寫的內容，不抽），這裡把 atText
 // 限定在該 ledger 段內唯一比對，再換成以 nominal 素材格起點為 0 的秒數。
 function resolveCard(s, data) {
@@ -378,10 +449,17 @@ for (const s of plan) {
     renderStart: ledger?.segments.find((segment) => segment.id === s.id)?.startSec ?? 0,
     renderDuration: nominalSec,
   };
+  let beats = [];
+  let visualWindow = null;
+  if (pick.id === 'shot' && !err) {
+    try { ({ beats, visualWindow } = resolveShotRhythm(s, data, lead)); }
+    catch (error) { console.error(error.message); process.exit(1); }
+  }
   rows.push({
     id: s.id, template: pick.id, why: pick.why,
     nominalSec, actualLead: lead.actualLead, durationSec: Number(lead.renderDuration.toFixed(2)),
     durationFrom: dur.from, sourceText: o.text, responsibility: s.responsibility,
+    ...(visualWindow ? { visualWindow, beats } : {}),
     extracted: { numbers: f.numbers.map((n) => n.matched), enumMarker: f.enumMarker, contrast: f.contrast },
     data, invalid: err,
   });
@@ -393,6 +471,9 @@ console.log('');
 for (const r of rows) {
   console.log(`格 ${r.id}  ${r.template.padEnd(13)} ${r.durationSec}s(${r.durationFrom}；nominal ${r.nominalSec}s + lead ${r.actualLead}s)  ← ${r.why}`);
   console.log(`         原文：${r.sourceText}`);
+  if (r.visualWindow) {
+    console.log(`         窗口：${r.visualWindow.enterSec.toFixed(2)}–${r.visualWindow.exitSec.toFixed(2)}s（${r.visualWindow.durationSec.toFixed(2)}s）；拍點 ${r.beats.map((beat) => `${beat.anchor}@${beat.atSec.toFixed(2)}`).join(' → ')}`);
+  }
   console.log(`         資料：${JSON.stringify(r.data, null, 0)}`);
   if (r.invalid) console.log(`         不合法：${r.invalid}`);
 }
@@ -412,7 +493,9 @@ if (WRITE) {
   }
   for (const r of rows) {
     const t = ALL[r.template];
-    const { css, body: bodyHtml, tl } = t.render(C, r.data, { spotlight, lead: r.actualLead });
+    const { css, body: bodyHtml, tl } = t.render(C, r.data, {
+      spotlight, lead: r.actualLead, beats: r.beats ?? [], visualWindow: r.visualWindow ?? null,
+    });
     const html = shell(`br${r.id}`, r.durationSec, css, bodyHtml, tl(r.durationSec), t.shiftY);
     fs.writeFileSync(path.join(dir, `${r.id}-${r.template}.html`), html);
   }

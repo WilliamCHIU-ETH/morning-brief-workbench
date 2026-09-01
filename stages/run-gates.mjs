@@ -474,6 +474,107 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
   return { ok: !bad.length, measured: bad.length ? bad.join('、') : `${mg.length}/${mg.length} 格都有截圖與 focus` };
 });
 
+// 視覺窗口只量 shot 圖層，不改 ledger coverage／alternation 的句子語意。
+// 一旦任一 shot 有窗口，就要求所有 shot 都有；否則舊的整句蓋屏會從缺欄位處漏回來。
+{
+  const id = 'shot.visual-window';
+  const spec = acceptance.gates.find((g) => g.id === id);
+  if (!has('mg-plan.json')) {
+    record(id, 'skipped', null, { rule: spec?.rule, note: '缺 mg-plan.json' });
+  } else if (!has('segmentLedger')) {
+    record(id, 'skipped', null, { rule: spec?.rule, note: '缺 segment-ledger.json' });
+  } else {
+    try {
+      const rawPlan = load('mg-plan.json');
+      const slots = Array.isArray(rawPlan) ? rawPlan : (rawPlan.slots ?? []);
+      const shotSlots = slots.filter((slot) => slot.template === 'shot');
+      const withWindow = shotSlots.filter((slot) => slot.visualWindow);
+      if (!withWindow.length) {
+        record(id, 'skipped', null, { rule: spec?.rule, note: 'mg-plan.json 的 shot 格尚無 visualWindow（舊計畫或尚無 ASR）' });
+      } else {
+        const threshold = spec?.threshold ?? {};
+        const minSec = Number(threshold.minSec);
+        const maxSec = Number(threshold.maxSec);
+        const fadeSec = Number(threshold.fadeSec);
+        const minBeatGapSec = Number(threshold.minBeatGapSec);
+        if (!(Number.isFinite(minSec) && Number.isFinite(maxSec) && minSec > 0 && maxSec >= minSec
+          && Number.isFinite(fadeSec) && fadeSec > 0
+          && Number.isFinite(minBeatGapSec) && minBeatGapSec >= 0)) {
+          throw new Error('acceptance.json 的 shot.visual-window minSec／maxSec／fadeSec／minBeatGapSec 不合法');
+        }
+        const segments = new Map(load('segmentLedger').segments
+          .map((segment) => [String(segment.id), segment]));
+        const bad = [];
+        const measured = [];
+        const overMax = [];
+        for (const slot of shotSlots) {
+          const window = slot.visualWindow;
+          const segment = segments.get(String(slot.id));
+          if (!window) { bad.push(`${slot.id} 缺 visualWindow`); continue; }
+          if (!segment) { bad.push(`${slot.id} 在 ledger 找不到段界`); continue; }
+          const enter = Number(window.enterSec);
+          const exit = Number(window.exitSec);
+          const duration = exit - enter;
+          if (!(Number.isFinite(enter) && Number.isFinite(exit) && exit > enter)) {
+            bad.push(`${slot.id} 窗口時間不合法`); continue;
+          }
+          if (enter < segment.startSec - EPS || exit > segment.endSec + EPS) {
+            bad.push(`${slot.id} ${enter.toFixed(2)}–${exit.toFixed(2)}s 超出段界 ${segment.startSec.toFixed(2)}–${segment.endSec.toFixed(2)}s`);
+          }
+          if (!Number.isFinite(Number(window.durationSec))
+            || Math.abs(Number(window.durationSec) - duration) > EPS) {
+            bad.push(`${slot.id} durationSec 與 exit−enter 不符`);
+          }
+          if (duration < minSec - EPS) bad.push(`${slot.id} 窗口 ${duration.toFixed(2)}s 小於 ${minSec}s`);
+          if (!Number.isFinite(Number(window.fadeSec)) || Math.abs(Number(window.fadeSec) - fadeSec) > EPS) {
+            bad.push(`${slot.id} fadeSec ${JSON.stringify(window.fadeSec)} ≠ ${fadeSec}s`);
+          }
+          const beats = Array.isArray(slot.beats) ? slot.beats : [];
+          if (!beats.length) {
+            bad.push(`${slot.id} 0 個拍點`);
+          } else {
+            let previous = -Infinity;
+            for (const beat of beats) {
+              const at = Number(beat.atSec);
+              const end = Number(beat.endSec);
+              if (!(Number.isFinite(at) && Number.isFinite(end) && end >= at)) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」時間不合法`); continue;
+              }
+              if (at < previous - EPS) bad.push(`${slot.id} 拍點順序反了`);
+              if (Number.isFinite(previous) && at - previous < minBeatGapSec - EPS) {
+                bad.push(`${slot.id} 相鄰拍點只隔 ${(at - previous).toFixed(2)}s，小於 ${minBeatGapSec}s`);
+              }
+              previous = at;
+              if (at < enter - EPS || end > exit + EPS) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」${at.toFixed(2)}–${end.toFixed(2)}s 不在窗口內`);
+              }
+            }
+            if (duration > maxSec + EPS) {
+              const beatSpan = Math.max(...beats.map((beat) => Number(beat.endSec)))
+                - Math.min(...beats.map((beat) => Number(beat.atSec)));
+              if (!(beatSpan > maxSec + EPS)) {
+                bad.push(`${slot.id} 窗口 ${duration.toFixed(2)}s 超過 ${maxSec}s，但拍點本身只跨 ${beatSpan.toFixed(2)}s`);
+              } else if (typeof window.overMaxReason !== 'string' || !window.overMaxReason.trim()) {
+                bad.push(`${slot.id} 超過 ${maxSec}s 卻沒有 overMaxReason`);
+              } else {
+                overMax.push(`${slot.id}：${window.overMaxReason}`);
+              }
+            }
+          }
+          measured.push(`${slot.id} ${duration.toFixed(2)}s/${beats.length}拍`);
+        }
+        record(id, bad.length ? 'failed' : 'passed',
+          bad.length ? bad.slice(0, 5).join('；') : measured.join('、'),
+          { rule: spec?.rule, ...((bad.length > 5 || overMax.length) ? {
+            note: [...(bad.length > 5 ? [`另有 ${bad.length - 5} 項`] : []), ...overMax].join('；'),
+          } : {}) });
+      }
+    } catch (error) {
+      record(id, 'error', null, { rule: spec?.rule, note: error.message });
+    }
+  }
+}
+
 // 歷史模式：逐格 dataAsOf 必須等於頂層 asOf；日K格還要由 AX 日期與四個 OHLC 原文作證。
 // revenue 是月資料，沒有單日查價線；它仍逐格記 dataAsOf／captureTime，但 axDate／axOhlc 必須是 null，
 // 不能捏造不存在的 AX 證據。

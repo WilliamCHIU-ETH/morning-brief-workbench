@@ -14,7 +14,7 @@
  *   imageW/H  原圖像素。plan-mg 用 imageSize() 量，不由人填。
  *   cropTop   裁掉頂部多少像素（狀態列）。對標片的截圖從 App 標頭開始，沒有 iOS 狀態列。
  *   focus     {x,y,w,h} 原圖像素座標，黃框框住的區域。沒有就不畫框、從頂端顯示。
- *   focus2    可選。第二個框：55% 時間點捲過去（對標片「富邦金 → 國泰金」那種移動）。
+ *   focus2    可選。第二個框：在 plan-mg 解析出的第二個文字拍點移過去。
  *
  * 幾何：截圖等比縮到舞台寬 984px，垂直位移讓 focus 置中；#stage 由 comp-shell 保證避開
  * 標題板（y<254）與字幕框（y>1350）。
@@ -76,7 +76,7 @@ export const SHOT = {
     if (d.focus2 && !rectOk({ ...d.focus2, y: d.focus2.y - d.cropTop }, d.imageW, H)) {
       return `focus2 不在圖內：${JSON.stringify(d.focus2)}`;
     }
-    // second：同一格接續第二頁（對標片「講到下一個數字就換頁」）。55% 處硬切，各自有黃框。
+    // second：同一格接續第二頁（對標片「講到下一個數字就換頁」）。拍點處交叉淡變，各自有黃框。
     if (d.second) {
       if (d.focus2) return 'second 與 focus2 擇一：換頁與同頁移框不能同時用';
       const e = d.second;
@@ -95,7 +95,7 @@ export const SHOT = {
     }
     return null;
   },
-  render(C, d, { spotlight } = {}) {
+  render(C, d, { spotlight, beats = [] } = {}) {
     const spotlightShadow = spotlight?.alpha > 0
       ? `,0 0 0 ${spotlight.spreadPx}px ${colorWithAlpha(spotlight.color, spotlight.alpha)}`
       : '';
@@ -145,7 +145,7 @@ export const SHOT = {
       g2 = { y: Math.max(minY2, Math.min(0, STAGE_H / 2 - cy2)), b: bb, b2: bb2, yB };
       secCss = `#shot2{position:absolute;left:0;top:0;width:${STAGE_W}px;height:${r(shownH2)}px;overflow:hidden;will-change:transform;transform-origin:${r(bb.left + bb.width / 2)}px ${r(bb.top + bb.height / 2)}px}
 #shot2 img{position:absolute;left:0;top:${r(-sec.cropTop * s2)}px;width:${STAGE_W}px;height:${r(sec.imageH * s2)}px;display:block}
-#hl2{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55)${spotlightShadow};pointer-events:none}
+#hl2{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55)${spotlightShadow};pointer-events:none;transform-origin:center;will-change:transform,opacity}
 `;
       secBody = `
       <div id="shot2">
@@ -156,16 +156,23 @@ export const SHOT = {
     const css = `
 #shot{position:absolute;left:0;top:0;width:${STAGE_W}px;height:${r(shownH)}px;overflow:hidden;will-change:transform;transform-origin:${ox}px ${oy}px}
 #shot img{position:absolute;left:0;top:${r(-d.cropTop * s)}px;width:${STAGE_W}px;height:${r(d.imageH * s)}px;display:block}
-#hl{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55)${spotlightShadow};pointer-events:none}
+#hl{position:absolute;border:${BORDER}px solid ${C.hi};border-radius:18px;box-shadow:0 0 0 4px rgba(0,0,0,.35),0 0 28px rgba(255,236,0,.55)${spotlightShadow};pointer-events:none;transform-origin:center;will-change:transform,opacity}
 ${secCss}`;
     const body = `      <div id="shot">
         <img src="${d.image}" alt="" width="${STAGE_W}" height="${r(d.imageH * s)}" />
 ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;width:${r(b1.width)}px;height:${r(b1.height)}px"></div>` : ''}
       </div>${secBody}`;
 
-    // 節奏對齊對標片：畫面直接切進來（不做飛入），黃框稍後「亮」上去；
-    // 有 focus2 時在 55% 處捲過去，捲動與框移同一條 ease。
+    // 畫面本身先在視覺窗口露出；黃框只在文字拍點亮起。拍點是 plan-mg 用 char-times
+    // 算出的 composition localSec，不再拿格長的 55% 猜。沒有 ASR 的付費前預覽才退回比例值。
     const tl = (dur) => {
+      const localAt = (kind, fallback) => {
+        const value = Number(beats.find((beat) => beat.kind === kind)?.localSec);
+        return Math.max(0, Math.min(dur - 0.05, Number.isFinite(value) ? value : fallback));
+      };
+      const focusAt = localAt('focus', 0.4);
+      const focus2At = localAt('focus2', Math.max(0.9, dur * 0.55));
+      const secondAt = localAt('second', Math.max(0.9, dur * 0.55));
       const parts = [
         // 初始位移交給 GSAP（tl.set 是 0 秒 tween，seek-safe）。寫在 CSS transform 會被
         // GSAP 的 y／scale tween 整條覆蓋（lint:gsap_css_transform_conflict）。
@@ -176,27 +183,30 @@ ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;widt
         `  tl.fromTo('#shot',{scale:1},{scale:1.03,duration:${dur.toFixed(2)},ease:'none'},0);`,
       ];
       if (b1) {
-        parts.push(`  tl.fromTo('#hl',{autoAlpha:0,scale:1.12},{autoAlpha:1,scale:1,duration:.35,ease:'power3.out'},.4);`);
+        parts.push(`  tl.fromTo('#hl',{autoAlpha:0,scale:.82},{autoAlpha:1,scale:1,duration:.3,ease:'back.out(1.5)'},${focusAt.toFixed(2)});`);
       }
       if (g2) {
-        const at = Math.max(0.9, dur * 0.55).toFixed(2);
+        const at = secondAt.toFixed(2);
         parts.push(`  tl.set('#shot2',{y:${r(g2.y)},autoAlpha:0},0);`);
-        parts.push(`  tl.set('#hl2',{autoAlpha:0},0);`);
-        // 硬切換頁：對標片換頁就是直接切，不交叉淡化
-        parts.push(`  tl.to('#shot',{autoAlpha:0,duration:.12,ease:'none'},${at});`);
-        parts.push(`  tl.to('#shot2',{autoAlpha:1,duration:.12,ease:'none'},${at});`);
+        parts.push(`  tl.set('#hl2',{autoAlpha:0,scale:.82},0);`);
+        // 跨頁不是閃切：兩頁在同一拍交叉淡變，避免一幀黑場也保留換頁感。
+        parts.push(`  tl.to('#shot',{autoAlpha:0,duration:.3,ease:'power2.inOut'},${at});`);
+        parts.push(`  tl.to('#shot2',{autoAlpha:1,duration:.3,ease:'power2.inOut'},${at});`);
         parts.push(`  tl.fromTo('#shot2',{scale:1},{scale:1.03,duration:${dur.toFixed(2)},ease:'none'},0);`);
-        parts.push(`  tl.fromTo('#hl2',{autoAlpha:0,scale:1.12},{autoAlpha:1,scale:1,duration:.35,ease:'power3.out'},${(Math.max(0.9, dur * 0.55) + 0.25).toFixed(2)});`);
+        parts.push(`  tl.to('#hl2',{autoAlpha:1,scale:1,duration:.3,ease:'back.out(1.5)'},${at});`);
         if (g2.b2) {
-          // 第二頁內的框移：框完整列停一拍，再移到實際數字。切頁點與格尾之間取中段起手。
-          const atN = Math.max(0.9, dur * 0.55);
-          const at2 = (atN + Math.max(0.9, (dur - atN) * 0.45)).toFixed(2);
-          parts.push(`  tl.to('#shot2',{y:${r(g2.yB)},duration:.5,ease:'power2.inOut'},${at2});`);
-          parts.push(`  tl.to('#hl2',{x:${r(g2.b2.left - g2.b.left)},y:${r(g2.b2.top - g2.b.top)},width:${r(g2.b2.width)},height:${r(g2.b2.height)},duration:.5,ease:'power2.inOut'},${at2});`);
+          // 第二頁內的細部收框沿用同一主張：second 拍後至少 0.8s 再移，不捏造文字錨。
+          // 若拍點已貼近格尾，寧可不做細部收框，也不能把它夾到換頁之前。
+          const latestAt2 = dur - 0.55;
+          if (latestAt2 >= secondAt + 0.8) {
+            const at2 = Math.min(latestAt2, secondAt + Math.max(0.8, (dur - secondAt) * 0.45));
+            parts.push(`  tl.to('#shot2',{y:${r(g2.yB)},duration:.5,ease:'power2.inOut'},${at2.toFixed(2)});`);
+            parts.push(`  tl.to('#hl2',{x:${r(g2.b2.left - g2.b.left)},y:${r(g2.b2.top - g2.b.top)},width:${r(g2.b2.width)},height:${r(g2.b2.height)},duration:.5,ease:'power2.inOut'},${at2.toFixed(2)});`);
+          }
         }
       }
       if (b2) {
-        const at = Math.max(0.9, dur * 0.55).toFixed(2);
+        const at = focus2At.toFixed(2);
         parts.push(`  tl.to('#shot',{y:${r(y2)},duration:.6,ease:'power2.inOut'},${at});`);
         // 框移走 transform（left/top 是 layout 屬性，會整數像素跳動：lint:gsap_non_transform_motion）
         parts.push(`  tl.to('#hl',{x:${r(b2.left - b1.left)},y:${r(b2.top - b1.top)},width:${r(b2.width)},height:${r(b2.height)},duration:.6,ease:'power2.inOut'},${at});`);

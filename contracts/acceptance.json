@@ -384,6 +384,23 @@
       "counterexample": "沒有可指之物的句子被排成素材格，畫面只能放一張無關的截圖——那是 2026-08-27 被判「動畫看不懂」的同一件事換一層皮"
     },
     {
+      "id": "shot.visual-window",
+      "stage": "shot",
+      "rule": "mg-plan.json 的 shot 格有視覺窗口時，窗口必須完全落在該句段界內、長度通常為 2–6 秒，並涵蓋該格全部文字拍點；多拍起點至少相隔 minBeatGapSec，窗口淡入淡出必須等於 fadeSec；超過 6 秒只允許因拍點本身跨越超過 6 秒，且 visualWindow.overMaxReason 必須說明",
+      "threshold": {
+        "minSec": 2,
+        "maxSec": 6,
+        "singleBeatTargetMinSec": 3,
+        "leadSec": 0.4,
+        "tailSec": 1,
+        "fadeSec": 0.3,
+        "minBeatGapSec": 0.8
+      },
+      "incident": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉記錄的 2026-09-01 使用者 audit：0827 對齊版的強茂格整句 6.7 秒蓋屏（應 3–4 秒）、加權格講點數時仍停在成交量表（缺拍）、清單項未唸先現。",
+      "source": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉R1／R2",
+      "counterexample": "若仍以 ledger 整句當素材顯示窗，格 04 會從『錢選了功率元件』一路蓋到 150.5 元講完；若只縮短 data-duration 卻不驗拍點，末拍又可能被提早切掉。"
+    },
+    {
       "id": "shot.data-as-of",
       "stage": "shot",
       "rule": "shot-plan.json 有 asOf 時，每格 dataAsOf 必須等於頂層 asOf；日K格的 AX 日期換算後必須等於 dataAsOf，且 AX 必須讀到開／高／低／收四欄。revenue 是月資料，逐格驗 dataAsOf／captureTime，但不得捏造單日 axDate／axOhlc",

@@ -526,6 +526,7 @@
       "entryX": -24,
       "cardInSec": 0.2,
       "itemInSec": 0.25,
+      "spokenOpacity": 0.5,
       "outSec": 0.2,
       "cardInEase": "power2.out",
       "itemInEase": "power2.out",

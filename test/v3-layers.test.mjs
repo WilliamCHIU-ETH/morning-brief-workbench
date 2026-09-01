@@ -8,11 +8,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveLeads } from '../stages/lib/lead.mjs';
+import { computeVisualWindow, resolveOrderedBeatTimes } from '../stages/lib/rhythm.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = path.join(ROOT, 'fixtures', 'project-v4c');
 const PLAN_MG = path.join(ROOT, 'stages', 'plan-mg.mjs');
 const BUILD_MAIN = path.join(ROOT, 'stages', 'build-main.mjs');
+const RUN_GATES = path.join(ROOT, 'stages', 'run-gates.mjs');
 const RENDER = path.join(ROOT, 'stages', 'render.mjs');
 const REPO_LAYOUT = path.join(ROOT, 'template', 'layout.json');
 
@@ -45,6 +47,14 @@ function cardOverride(firstAtText, secondAtText = '光通訊族群') {
 function writeJson(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function makeTinyPng(file) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    'base64',
+  ));
 }
 
 function makeVideo(file, duration) {
@@ -134,6 +144,144 @@ test('resolveLeads：room=0 不提前', () => {
   assert.deepEqual(hits.get('04'), { actualLead: 0, renderStart: 3, renderDuration: 1 });
 });
 
+test('同分句多拍：逐字時間相撞時仍照字序且至少間隔 0.8s', () => {
+  const charTimes = [...'甲乙丙丁'].map((ch, index) => ({
+    ch, start: index * 0.1, end: index * 0.1 + 0.08,
+  }));
+  const beats = resolveOrderedBeatTimes({
+    charTimes,
+    segment: { id: 'X', anchor: '甲乙丙丁', startSec: 0, endSec: 3 },
+    anchors: ['甲', '乙'],
+    minGapSec: 0.8,
+  });
+  assert.equal(beats[0].atSec, 0);
+  assert.equal(beats[1].atSec, 0.8);
+  assert.match(beats[1].timing, /最小拍距/);
+});
+
+test('R1 超過 6s 只因涵蓋遠距拍點，會留下可稽核原因', () => {
+  const window = computeVisualWindow({
+    segmentStartSec: 0,
+    segmentEndSec: 10,
+    beats: [{ atSec: 1, endSec: 1.2 }, { atSec: 8, endSec: 8.2 }],
+    minSec: 2,
+    maxSec: 6,
+  });
+  assert.ok(window.durationSec > 6);
+  assert.match(window.overMaxReason, /涵蓋 2 個拍點/);
+});
+
+test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween、主片只掛視覺窗口', (t) => {
+  const dir = project(t);
+  const image = path.join(dir, 'assets', 'shot.png');
+  makeTinyPng(image);
+  writeJson(path.join(dir, 'shot-plan.json'), {
+    slots: {
+      '02': {
+        page: 'TWA00/kLine', image: 'assets/shot.png', cropTop: 0,
+        focus: { x: 0, y: 0, w: 1, h: 1 },
+        focus2: { x: 0, y: 0, w: 1, h: 1 },
+        targets: [
+          { target: '214', by: 'script-number' },
+          { target: '703', by: 'script-number' },
+        ],
+      },
+    },
+  });
+  let result = run(PLAN_MG, dir, ['--write']);
+  assert.equal(result.status, 0, result.stderr);
+  const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
+  const slot = plan.slots.find((entry) => entry.id === '02');
+  assert.deepEqual(slot.beats.map((beat) => [beat.anchor, beat.atSec]), [['214', 7.12], ['703', 9.64]]);
+  assert.deepEqual(slot.visualWindow, {
+    enterSec: 6.72, exitSec: 10.56, durationSec: 3.84, fadeSec: 0.3,
+  });
+  const composition = fs.readFileSync(path.join(dir, 'compositions', '02-shot.html'), 'utf8');
+  assert.match(composition, /#hl'.*1\.65\)/);
+  assert.match(composition, /tl\.to\('#hl'.*4\.17\)/);
+
+  makeRendersForPlan(dir);
+  result = run(BUILD_MAIN, dir);
+  assert.equal(result.status, 0, result.stderr);
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.match(html, /id="broll-02"[^>]*data-start="6\.72" data-duration="3\.84" data-media-start="1\.25"/);
+  assert.match(html, /#broll-02'.*opacity:0.*6\.7200/);
+
+  let gateResult = run(RUN_GATES, dir, ['--json']);
+  let gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'passed');
+
+  const secondBeat = { ...slot.beats[1] };
+  slot.beats[1].atSec = 7.2;
+  slot.beats[1].endSec = 7.3;
+  writeJson(path.join(dir, 'mg-plan.json'), plan);
+  gateResult = run(RUN_GATES, dir, ['--json']);
+  gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'failed');
+  assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /相鄰拍點只隔/);
+  slot.beats[1] = secondBeat;
+
+  slot.beats[1].anchor = '不在句內';
+  writeJson(path.join(dir, 'mg-plan.json'), plan);
+  result = run(BUILD_MAIN, dir);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /拍點文字錨「不在句內」不在該格句子內/);
+
+  slot.beats[1].anchor = '703';
+  slot.visualWindow.enterSec = 5;
+  slot.visualWindow.durationSec = Number((slot.visualWindow.exitSec - 5).toFixed(2));
+  writeJson(path.join(dir, 'mg-plan.json'), plan);
+  gateResult = run(RUN_GATES, dir, ['--json']);
+  gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'failed');
+  assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /超出段界/);
+});
+
+test('shot second 在第二個文字拍點做 0.3s 跨頁交叉淡變', (t) => {
+  const dir = project(t);
+  makeTinyPng(path.join(dir, 'assets', 'first.png'));
+  makeTinyPng(path.join(dir, 'assets', 'second.png'));
+  writeJson(path.join(dir, 'shot-plan.json'), {
+    slots: {
+      '02': {
+        page: 'first', image: 'assets/first.png', cropTop: 0,
+        focus: { x: 0, y: 0, w: 1, h: 1 },
+        targets: [
+          { target: '214', by: 'manual:first' },
+          { target: '703', by: 'manual:second' },
+        ],
+        second: {
+          page: 'second', image: 'assets/second.png', cropTop: 0,
+          focus: { x: 0, y: 0, w: 1, h: 1 },
+        },
+      },
+    },
+  });
+  const result = run(PLAN_MG, dir, ['--write']);
+  assert.equal(result.status, 0, result.stderr);
+  const composition = fs.readFileSync(path.join(dir, 'compositions', '02-shot.html'), 'utf8');
+  assert.match(composition, /tl\.to\('#shot',\{autoAlpha:0,duration:\.3[^\n]+4\.17\)/);
+  assert.match(composition, /tl\.to\('#shot2',\{autoAlpha:1,duration:\.3[^\n]+4\.17\)/);
+});
+
+test('shot target 不在該格句子時 fail closed 並指向重截／改 responsibility', (t) => {
+  const dir = project(t);
+  makeTinyPng(path.join(dir, 'assets', 'shot.png'));
+  writeJson(path.join(dir, 'shot-plan.json'), {
+    slots: {
+      '02': {
+        page: 'TWA00/kLine', image: 'assets/shot.png', cropTop: 0,
+        focus: { x: 0, y: 0, w: 1, h: 1 },
+        targets: [{ target: '不存在', by: 'manual' }],
+      },
+    },
+  });
+  const result = run(PLAN_MG, dir, ['--write']);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /不在該格句子/);
+  assert.match(result.stderr, /responsibility.*plan-hints/s);
+});
+
 test('resolveCard：atText 落在下一段會拒絕', (t) => {
   const dir = project(t);
   writeJson(path.join(dir, 'mg-overrides.json'), cardOverride('只剩題材'));
@@ -162,8 +310,30 @@ test('resolveCard 正常換算 at，override 優先於 shot 且進 provenance', 
   const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
   assert.equal(plan.slots.find((slot) => slot.id === '08').template, 'card');
   assert.equal(at(dir, '08'), 0.43);
+  const composition = fs.readFileSync(path.join(dir, 'compositions', '08-card.html'), 'utf8');
+  assert.doesNotMatch(composition, /autoAlpha:\.45/);
+  assert.match(composition, /#k-r1'.*autoAlpha:1.*0\.43/);
   const sidecar = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json.provenance.json'), 'utf8'));
   assert.ok(sidecar.inputs.some((input) => input.path === 'mg-overrides.json'));
+});
+
+test('emphasis list 同字幕內仍依逐字時間逐項進場，已講項降灰', (t) => {
+  const { dir } = prepareBuildProject(t);
+  writeJson(path.join(dir, 'emphasis.json'), [{
+    type: 'list',
+    title: '逐項進場',
+    items: [
+      { text: '第一', match: '只剩題材' },
+      { text: '第二', match: '量能跟不上' },
+    ],
+    untilMatch: '就先不要追價',
+  }]);
+  const result = run(BUILD_MAIN, dir);
+  assert.equal(result.status, 0, result.stderr);
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.match(html, /#emphasis-list-1-item-1'.*45\.8000/);
+  assert.match(html, /#emphasis-list-1-item-2'.*46\.3800/);
+  assert.match(html, /#emphasis-list-1-item-1'.*opacity:0\.5.*46\.3800/);
 });
 
 test('emphasis list item 時間反向會拒絕', (t) => {
@@ -312,8 +482,9 @@ test('openTitle:true 保留舊行為且 index.html 位元不變', (t) => {
   writeJson(path.join(dir, 'main.config.json'), { openTitle: true });
   const result = run(BUILD_MAIN, dir);
   assert.equal(result.status, 0, result.stderr);
+  // 439c8e3 把畫布由 30fps conform 成主播原生 25fps；index 只差 data-fps，舊 hash 已失效。
   assert.equal(sha256(path.join(dir, 'index.html')),
-    '5a862e0ade7169ecbe7df42688c418d4f8cf90a42bb82f11c6f71efe8775d689');
+    'd62c1a882cb6d807cb198afa94d28e14f97ea89501feb033a686dca88d1ce8dc');
 });
 
 test('openTitle 物件模式自動折行，陣列可明寫斷行', (t) => {
@@ -421,8 +592,9 @@ test('openTitle.style 省略與 plain 維持現況且逐位元相同', (t) => {
   let result = run(BUILD_MAIN, dir);
   assert.equal(result.status, 0, result.stderr);
   const omitted = fs.readFileSync(path.join(dir, 'index.html'));
+  // 同上：25fps conform 已在本任務開始前落地，更新 stale golden hash，不改 plain 等價斷言。
   assert.equal(sha256(path.join(dir, 'index.html')),
-    '5b43fa2069f33660e9e01b8a3ebaefddf3e8482986574a48b0670befa5957587');
+    'b51f47b6cb2ef41b6a32d2d248ed3d97d8262616abf01b87d9976139e2d0ae07');
   writeJson(path.join(dir, 'main.config.json'), { openTitle: { ...openTitle, style: 'plain' } });
   result = run(BUILD_MAIN, dir);
   assert.equal(result.status, 0, result.stderr);

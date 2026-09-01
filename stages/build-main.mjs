@@ -54,6 +54,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { greetingWindow, openTitleEnd as resolveOpenTitleEnd, resolveLeads } from './lib/lead.mjs';
+import { textTimeMatches } from './lib/rhythm.mjs';
 import { requireFresh, resolveProject } from './lib/project.mjs';
 // renderHeader 只在 topBar==='header' 時才需要，動態載入——
 // template/header.mjs 目前沒人寫過（topBar 預設 title-board，這條路徑從未被走過），
@@ -337,6 +338,43 @@ for (const shot of renderShots) {
     || Math.abs(Number(planned.durationSec) - shot.renderDuration) > 0.01) {
     die(`格 ${shot.id} 的 mg-plan.json 前導與 build-main 不同，重跑 plan-mg 與 render slots。`);
   }
+
+  shot.visualWindow = planned.visualWindow ?? null;
+  shot.beats = planned.beats ?? [];
+  shot.clipStart = shot.renderStart;
+  shot.clipDuration = shot.renderDuration;
+  shot.mediaStart = 0;
+  if (shot.visualWindow) {
+    const window = shot.visualWindow;
+    if (!Number.isFinite(window.enterSec) || !Number.isFinite(window.exitSec)
+      || window.enterSec < shot.start - 0.001 || window.exitSec > shot.start + shot.duration + 0.001
+      || window.exitSec <= window.enterSec || !Number.isFinite(window.fadeSec) || window.fadeSec <= 0) {
+      die(`格 ${shot.id} 的 visualWindow 不合法或超出該句段界；重跑 plan-mg，不要手改 mg-plan.json。`);
+    }
+    if (!Array.isArray(shot.beats) || !shot.beats.length) {
+      die(`格 ${shot.id} 有 visualWindow 卻沒有 beats；重跑 plan-mg。`);
+    }
+    let cursor = 0;
+    for (const beat of shot.beats) {
+      if (typeof beat.anchor !== 'string' || !beat.anchor.length) {
+        die(`格 ${shot.id} 有空的拍點文字錨；shot-plan 的每個 focus／second 都要對到該格句子。`);
+      }
+      const at = String(segments.find((segment) => String(segment.id) === String(shot.id))?.anchor ?? '')
+        .indexOf(beat.anchor, cursor);
+      if (at < 0) {
+        die(`格 ${shot.id} 的拍點文字錨「${beat.anchor}」不在該格句子內或順序不符。`
+          + '請重截讓 shot-plan target 與旁白成對，或改寫 responsibility／用 plan-hints.json 押回主播，再重跑 plan-mg。');
+      }
+      cursor = at + beat.anchor.length;
+      if (!Number.isFinite(beat.atSec) || !Number.isFinite(beat.endSec)
+        || beat.atSec < window.enterSec - 0.001 || beat.endSec > window.exitSec + 0.001) {
+        die(`格 ${shot.id} 的拍點「${beat.anchor}」未被 visualWindow 完整涵蓋；重跑 plan-mg。`);
+      }
+    }
+    shot.clipStart = shift(window.enterSec);
+    shot.clipDuration = n4(window.exitSec - window.enterSec);
+    shot.mediaStart = n4(shot.actualLead + window.enterSec - shot.start);
+  }
   let renderDuration;
   try {
     renderDuration = Number(execFileSync('ffprobe',
@@ -348,18 +386,22 @@ for (const shot of renderShots) {
   }
 }
 
-// ── 強調字：專案有 emphasis.json 才啟用，時間只相信字幕 ledger ──────────────
+// ── 強調字：專案有 emphasis.json 才啟用；match 一律落到真正的逐字時間 ─────────
 
 const materialWindows = renderShots.map((shot) => ({
   id: shot.id,
-  renderStart: shot.renderStart,
+  anchor: segments.find((segment) => String(segment.id) === String(shot.id))?.anchor ?? '',
+  renderStart: shot.clipStart,
   nominalStart: shift(shot.start),
-  renderEnd: n4(shot.renderStart + shot.renderDuration),
+  renderEnd: n4(shot.clipStart + shot.clipDuration),
 }));
-const alignEmphasisExit = ({ where, label, displayStart, exitAnchor, naturalEnd }) => {
+const alignEmphasisExit = ({ where, label, displayStart, exitAnchor, naturalEnd, exitMatch = null }) => {
   const EPS = 0.0001;
   const aligned = materialWindows.find((shot) => shot.renderStart < shot.nominalStart - EPS
-    && exitAnchor >= shot.renderStart - EPS && exitAnchor <= shot.nominalStart + EPS);
+    && ((exitAnchor >= shot.renderStart - EPS && exitAnchor <= shot.nominalStart + EPS)
+      // 強制對齊後，段首第一字常比 ledger cut 晚幾十毫秒；文字錨若就是下一段前綴，
+      // 語意切點仍是段界，不能因 ASR 的起音延遲讓卡片壓住素材。
+      || (exitMatch && String(shot.anchor).startsWith(exitMatch))));
   const exitAt = aligned ? aligned.renderStart : naturalEnd;
   const advance = aligned ? Math.max(0, n4(exitAnchor - aligned.renderStart)) : 0;
   for (const shot of materialWindows) {
@@ -382,14 +424,21 @@ if (fs.existsSync(emphasisFile)) {
   catch (e) { die(`emphasis.json 不是合法 JSON：${e.message}`); }
   if (!Array.isArray(rawEmphasis)) die('emphasis.json 必須是陣列');
 
-  const captionFor = (match, where) => {
+  const charTimesFile = path.join(root, 'asr', 'script-char-times.json');
+  if (!fs.existsSync(charTimesFile)) {
+    die('emphasis.json 需要 asr/script-char-times.json 才能讓 item 在唸到時進場；先跑 ASR／align。');
+  }
+  const rawCharTimes = readJson('asr/script-char-times.json');
+  const emphasisCharTimes = Array.isArray(rawCharTimes)
+    ? rawCharTimes : (rawCharTimes.chars ?? rawCharTimes.items ?? []);
+  const timeFor = (match, where) => {
     if (typeof match !== 'string' || !match.length) die(`${where} 的 match 必須是非空字串`);
-    const hits = captions.filter((c) => String(c.text).includes(match));
+    const hits = textTimeMatches(emphasisCharTimes, match);
     if (hits.length !== 1) {
       const listed = hits.length
-        ? hits.map((c) => `${c.id}「${c.text}」`).join('、')
+        ? hits.map((hit) => `${hit.startSec.toFixed(2)}–${hit.endSec.toFixed(2)}s`).join('、')
         : '（沒有命中）';
-      die(`${where} 的 match「${match}」必須唯一命中 caption-ledger.json，實際 ${hits.length} 條：${listed}`);
+      die(`${where} 的 match「${match}」必須唯一命中 asr/script-char-times.json，實際 ${hits.length} 次：${listed}`);
     }
     return hits[0];
   };
@@ -408,8 +457,8 @@ if (fs.existsSync(emphasisFile)) {
         die(`${where} 的 pop.holdSec 必須是大於等於 0 的秒數`);
       if (entry.style !== undefined && entry.style !== 'stamp')
         die(`${where} 的 pop.style 目前只接受 "stamp"`);
-      const caption = captionFor(entry.match, `${where} pop`);
-      const at = shift(caption.start);
+      const timing = timeFor(entry.match, `${where} pop`);
+      const at = shift(timing.startSec);
       const naturalExit = n4(at + L.emphasis.pop.inSec + entry.holdSec + L.emphasis.pop.outSec);
       requireExitWithinDuration(where, naturalExit);
       const aligned = alignEmphasisExit({
@@ -431,15 +480,15 @@ if (fs.existsSync(emphasisFile)) {
       const items = entry.items.map((item, itemIndex) => {
         if (!item || typeof item.text !== 'string' || !item.text.length)
           die(`${where} 第 ${itemIndex + 1} 個 item.text 必須是非空字串`);
-        const caption = captionFor(item.match, `${where} 第 ${itemIndex + 1} 個 item`);
+        const timing = timeFor(item.match, `${where} 第 ${itemIndex + 1} 個 item`);
         return {
           ...item,
           id: `emphasis-list-${index + 1}-item-${itemIndex + 1}`,
-          at: shift(caption.start),
+          at: shift(timing.startSec),
         };
       });
-      const until = captionFor(entry.untilMatch, `${where} untilMatch`);
-      const untilAt = shift(until.start);
+      const until = timeFor(entry.untilMatch, `${where} untilMatch`);
+      const untilAt = shift(until.startSec);
       for (let itemIndex = 1; itemIndex < items.length; itemIndex++) {
         if (items[itemIndex].at < items[itemIndex - 1].at) {
           die(`${where} 的 item 順序反了：「${items[itemIndex - 1].text}」${items[itemIndex - 1].at}s 晚於「${items[itemIndex].text}」${items[itemIndex].at}s。`);
@@ -453,7 +502,7 @@ if (fs.existsSync(emphasisFile)) {
       requireExitWithinDuration(where, naturalExit);
       const aligned = alignEmphasisExit({
         where, label: entry.title, displayStart: items[0].at,
-        exitAnchor: untilAt, naturalEnd: naturalExit,
+        exitAnchor: untilAt, naturalEnd: naturalExit, exitMatch: entry.untilMatch,
       });
       return {
         ...entry,
@@ -582,16 +631,25 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:${L.colors.
 // ── HTML 片段 ─────────────────────────────────────────────────────────────
 
 const brollEls = renderShots.map((s) =>
-  `      <video id="broll-${s.id}" class="clip broll" src="renders/${s.file}" muted playsinline data-start="${s.renderStart}" data-duration="${s.renderDuration}" data-media-start="0" data-track-index="${T.brollBase + s.index}"></video>`
+  `      <video id="broll-${s.id}" class="clip broll" src="renders/${s.file}" muted playsinline data-start="${s.clipStart}" data-duration="${s.clipDuration}" data-media-start="${s.mediaStart}" data-track-index="${T.brollBase + s.index}"></video>`
 ).join('\n');
 
-const brollAudioEls = brollAudio ? shots.map((s) =>
-  `      <audio id="broll-audio-${s.id}" class="clip" src="renders/${s.file}" data-start="${shift(s.start)}" data-duration="${s.duration}" data-media-start="0" data-track-index="${T.brollAudioBase + s.index}" data-volume="${L.broll.audio.volume}"></audio>`
+const brollAudioEls = brollAudio ? renderShots.map((s) =>
+  `      <audio id="broll-audio-${s.id}" class="clip" src="renders/${s.file}" data-start="${s.clipStart}" data-duration="${s.clipDuration}" data-media-start="${s.mediaStart}" data-track-index="${T.brollAudioBase + s.index}" data-volume="${L.broll.audio.volume}"></audio>`
 ).join('\n') : '';
 
 const capEls = captions.map((c) =>
   `      <div id="caption-${c.id}" class="clip caption" data-start="${shift(c.start)}" data-duration="${c.duration}" data-track-index="${T.caption}"><div class="caption-inner${c.cleanCharCount > inner.longThresholdChars ? ' long' : ''}">${esc(c.text)}</div></div>`
 ).join('\n');
+
+const brollTweens = renderShots.filter((shot) => shot.visualWindow).map((shot) => {
+  const start = shot.clipStart;
+  const end = n4(shot.clipStart + shot.clipDuration);
+  const fade = Math.min(Number(shot.visualWindow.fadeSec), shot.clipDuration / 4);
+  return `        tl.fromTo('#broll-${shot.id}',{opacity:0},{opacity:1,duration:${fade.toFixed(4)},ease:'power2.out'},${start.toFixed(4)});
+        tl.to('#broll-${shot.id}',{opacity:0,duration:${fade.toFixed(4)},ease:'power2.in'},${n4(end - fade).toFixed(4)});
+        tl.set('#broll-${shot.id}',{opacity:0},${end.toFixed(4)});`;
+}).join('\n');
 
 const F = cap.fade;
 const capTweens = captions.map((c) => {
@@ -802,9 +860,10 @@ const emphasisTweens = emphasis.map((entry) => {
         tl.set('#${entry.id}',{opacity:0},${entry.exitAt.toFixed(4)});`;
   }
   const Q = E.list;
-  const itemTweens = entry.items.map((item) => `
+  const itemTweens = entry.items.map((item, itemIndex) => `
         tl.set('#${item.id}',{opacity:0,x:${Q.entryX}},0);
-        tl.to('#${item.id}',{opacity:1,x:0,duration:${Q.itemInSec},ease:'${Q.itemInEase}'},${item.at.toFixed(4)});`).join('');
+        tl.to('#${item.id}',{opacity:1,x:0,duration:${Q.itemInSec},ease:'${Q.itemInEase}'},${item.at.toFixed(4)});${itemIndex > 0 ? `
+        tl.to('#${entry.items[itemIndex - 1].id}',{opacity:${Q.spokenOpacity ?? 0.5},duration:${Q.itemInSec},ease:'${Q.itemInEase}'},${item.at.toFixed(4)});` : ''}`).join('');
   return `
         tl.set('#${entry.id}',{opacity:0},0);
         tl.to('#${entry.id}',{opacity:1,duration:${Q.cardInSec},ease:'${Q.cardInEase}'},${entry.at.toFixed(4)});${itemTweens}
@@ -827,7 +886,7 @@ ${body}
     <script>
       (function(){
         const tl = gsap.timeline({paused:true});
-${capTweens}${openTitleTweens}${emphasisTweens}
+${brollTweens}${brollTweens ? '\n' : ''}${capTweens}${openTitleTweens}${emphasisTweens}
         window.__timelines = window.__timelines || {};
         window.__timelines['${compositionId}'] = tl;
       })();
