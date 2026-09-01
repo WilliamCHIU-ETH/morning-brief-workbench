@@ -95,7 +95,9 @@ state=official_close）。但 App 每一頁的 sticky 頁首永遠顯示「現�
 - 全專案（含 [internal-identifier-removed] target）**沒有任何「指定觀察日期」機制**：該 target 的
   [internal-buildsetting-removed] 是空的，連 DEBUG 開發面板都不會被編譯進去。
 - 查價線的日期與 OHLC 是本地已載入的 K 線陣列索引（`[internal-source-removed]`
-  hightlightUpdate），選取當下不打 API——這就是「資料可回溯、頁面狀態不可回溯」的原因。
+  hightlightUpdate），選取當下不打 API。**它只是一般的圖表十字線功能，不是「時間回溯」**——
+  任何看盤軟體都能在歷史K棒上讀到當日開高低收。--as-of 用它當「數字證據」可以，
+  但不要把它說成 App 有回溯能力；App 沒有。
 
 **回測（過去 docx 的測試片）的素材格政策（2026-09-01 使用者裁定）**：照 0825 構圖——
 即時頁 header、不加 --as-of；header 數字必然是截圖日的，所以 **-test 目錄＋--test-mode 是
