@@ -59,8 +59,10 @@ npm run plan -- --project projects/20260827-<主題> --write
 #    前提：iPhone 17 Pro 模擬器裝有 [internal-identifier-removed] 且已登入（見下方「截圖通道」）
 node stages/capture-shots.mjs --project projects/20260827-<主題> --dryrun   # 先看每格解析到哪一頁
 node stages/capture-shots.mjs --project projects/20260827-<主題>            # 正式；用過去的講稿測試時加 --test-mode
-#    晨報引用「前一交易日收盤」，截圖時間晚於當日 09:00 就必須加 --as-of <該交易日>：
-#    日K歷史選棒＋AX 驗日期與收盤（時間語意與幾何代價見 docs/screenshot-standard.md）
+#    時間語意三分法（詳見 docs/screenshot-standard.md）：
+#    正式片、開盤前截 → 什麼都不加，header 天然是前收（首選，0825 構圖）
+#    正式片、錯過 09:00 → 加 --as-of <前一交易日>（日K證據通道，構圖較差）
+#    回測（過去的 docx）→ 不加 --as-of，用 --test-mode＋目錄 -test 結尾（header 是截圖日數字，僅內部）
 #    某格印「沒有 focus」＝那句話沒有可指的東西 → 寫進 plan-hints.json 的 presenter 押回主播，重跑 3
 
 # 7. 產出素材格 composition（有 shot-plan 的格自動用 shot 版型，其餘才落到 MG 版型）

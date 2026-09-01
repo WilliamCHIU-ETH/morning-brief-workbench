@@ -88,6 +88,20 @@ state=official_close）。但 App 每一頁的 sticky 頁首永遠顯示「現�
    - 構圖整體不如即時頁 header（對標樣本沒有這種日K特寫）。
    所以 --as-of 是「開盤前窗口錯過時的證據通道」，不是視覺上的等價替代。
 
+**「回溯時間」的邊界（2026-09-01 以 [internal-repo-removed] 原始碼查證，不是猜測）**：
+- header 報價是 WebSocket 依股票代碼訂閱的即時推播（`[internal-source-removed]` 的
+  ApiConfig 只帶 target、無任何日期欄位；新舊靠傳輸序號 sn）——**改裝置時鐘不會讓 header
+  顯示過去收盤**，頂多讓連線壞掉。`simctl status_bar override` 只改狀態列貼皮，更不算。
+- 全專案（含 [internal-identifier-removed] target）**沒有任何「指定觀察日期」機制**：該 target 的
+  [internal-buildsetting-removed] 是空的，連 DEBUG 開發面板都不會被編譯進去。
+- 查價線的日期與 OHLC 是本地已載入的 K 線陣列索引（`[internal-source-removed]`
+  hightlightUpdate），選取當下不打 API——這就是「資料可回溯、頁面狀態不可回溯」的原因。
+
+**回測（過去 docx 的測試片）的素材格政策（2026-09-01 使用者裁定）**：照 0825 構圖——
+即時頁 header、不加 --as-of；header 數字必然是截圖日的，所以 **-test 目錄＋--test-mode 是
+強制配套**（跟 0825 golden 自己一樣，shot-plan 記 mode: test），不得外流。這不是折衷，
+是 App 端已證明沒有第三條路。
+
 **禁止**：不得以字卡、遮蔽、後製標籤或修改模擬器時鐘把錯誤的即時畫面包裝成歷史資料
 （2026-08-31 使用者裁定原文：「不能靠遮蔽、字卡或後製標籤把錯誤即時畫面包裝成正確」）。
 畫面撐不起旁白就標 BLOCKED，不硬交。
