@@ -21,6 +21,7 @@
  */
 
 import fs from 'node:fs';
+import { SHOT_BEAT_TIMING, shotBeatTweenSec } from './lib/rhythm.mjs';
 
 const STAGE_W = 984;
 const STAGE_H = 1096;
@@ -163,16 +164,23 @@ ${secCss}`;
 ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;width:${r(b1.width)}px;height:${r(b1.height)}px"></div>` : ''}
       </div>${secBody}`;
 
-    // 畫面本身先在視覺窗口露出；黃框只在文字拍點亮起。拍點是 plan-mg 用 char-times
-    // 算出的 composition localSec，不再拿格長的 55% 猜。沒有 ASR 的付費前預覽才退回比例值。
+    // 畫面本身先在視覺窗口露出；黃框／換頁用 plan-mg 算好的 P3 transition 起點，
+    // 不再等到 anchor 起音才動。沒有 ASR 的付費前預覽才退回比例值。
     const tl = (dur) => {
+      const beatFor = (kind) => beats.find((beat) => beat.kind === kind);
       const localAt = (kind, fallback) => {
-        const value = Number(beats.find((beat) => beat.kind === kind)?.localSec);
+        const beat = beatFor(kind);
+        const value = Number(beat?.localTransitionStartSec ?? beat?.localSec);
         return Math.max(0, Math.min(dur - 0.05, Number.isFinite(value) ? value : fallback));
       };
+      const focusBeat = beatFor('focus');
+      const focus2Beat = beatFor('focus2');
+      const secondBeat = beatFor('second');
       const focusAt = localAt('focus', 0.4);
       const focus2At = localAt('focus2', Math.max(0.9, dur * 0.55));
       const secondAt = localAt('second', Math.max(0.9, dur * 0.55));
+      const focusTweenSec = Number(focusBeat?.tweenSec ?? shotBeatTweenSec('focus'));
+      const focus2TweenSec = Number(focus2Beat?.tweenSec ?? shotBeatTweenSec('focus2'));
       const parts = [
         // 初始位移交給 GSAP（tl.set 是 0 秒 tween，seek-safe）。寫在 CSS transform 會被
         // GSAP 的 y／scale tween 整條覆蓋（lint:gsap_css_transform_conflict）。
@@ -183,33 +191,36 @@ ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;widt
         `  tl.fromTo('#shot',{scale:1},{scale:1.03,duration:${dur.toFixed(2)},ease:'none'},0);`,
       ];
       if (b1) {
-        parts.push(`  tl.fromTo('#hl',{autoAlpha:0,scale:.82},{autoAlpha:1,scale:1,duration:.3,ease:'back.out(1.5)'},${focusAt.toFixed(2)});`);
+        parts.push(`  tl.fromTo('#hl',{autoAlpha:0,scale:.82},{autoAlpha:1,scale:1,duration:${focusTweenSec.toFixed(2)},ease:'back.out(1.5)'},${focusAt.toFixed(2)});`);
       }
       if (g2) {
         const at = secondAt.toFixed(2);
         parts.push(`  tl.set('#shot2',{y:${r(g2.y)},autoAlpha:0},0);`);
         parts.push(`  tl.set('#hl2',{autoAlpha:0,scale:.82},0);`);
         // 跨頁不是閃切：兩頁在同一拍交叉淡變，避免一幀黑場也保留換頁感。
-        parts.push(`  tl.to('#shot',{autoAlpha:0,duration:.3,ease:'power2.inOut'},${at});`);
-        parts.push(`  tl.to('#shot2',{autoAlpha:1,duration:.3,ease:'power2.inOut'},${at});`);
+        parts.push(`  tl.to('#shot',{autoAlpha:0,duration:${SHOT_BEAT_TIMING.secondSec.toFixed(2)},ease:'power2.inOut'},${at});`);
+        parts.push(`  tl.to('#shot2',{autoAlpha:1,duration:${SHOT_BEAT_TIMING.secondSec.toFixed(2)},ease:'power2.inOut'},${at});`);
         parts.push(`  tl.fromTo('#shot2',{scale:1},{scale:1.03,duration:${dur.toFixed(2)},ease:'none'},0);`);
-        parts.push(`  tl.to('#hl2',{autoAlpha:1,scale:1,duration:.3,ease:'back.out(1.5)'},${at});`);
+        parts.push(`  tl.to('#hl2',{autoAlpha:1,scale:1,duration:${SHOT_BEAT_TIMING.secondSec.toFixed(2)},ease:'back.out(1.5)'},${at});`);
         if (g2.b2) {
-          // 第二頁內的細部收框沿用同一主張：second 拍後至少 0.8s 再移，不捏造文字錨。
-          // 若拍點已貼近格尾，寧可不做細部收框，也不能把它夾到換頁之前。
-          const latestAt2 = dur - 0.55;
-          if (latestAt2 >= secondAt + 0.8) {
-            const at2 = Math.min(latestAt2, secondAt + Math.max(0.8, (dur - secondAt) * 0.45));
-            parts.push(`  tl.to('#shot2',{y:${r(g2.yB)},duration:.5,ease:'power2.inOut'},${at2.toFixed(2)});`);
-            parts.push(`  tl.to('#hl2',{x:${r(g2.b2.left - g2.b.left)},y:${r(g2.b2.top - g2.b.top)},width:${r(g2.b2.width)},height:${r(g2.b2.height)},duration:.5,ease:'power2.inOut'},${at2.toFixed(2)});`);
+          // 第二頁內的細部收框是同一拍的第二階段；planner 把「交叉淡變＋停一拍＋收框」
+          // 全算進 arrivalSec，P4 再從最後到位處量可讀停留。
+          const scheduledAt2 = secondAt + SHOT_BEAT_TIMING.secondSec
+            + SHOT_BEAT_TIMING.secondFocus2DelaySec;
+          const fallbackLatest = dur - SHOT_BEAT_TIMING.secondFocus2Sec - 0.05;
+          const at2 = secondBeat
+            ? scheduledAt2 : Math.min(fallbackLatest, Math.max(secondAt, scheduledAt2));
+          if (at2 >= secondAt && at2 <= fallbackLatest) {
+            parts.push(`  tl.to('#shot2',{y:${r(g2.yB)},duration:${SHOT_BEAT_TIMING.secondFocus2Sec.toFixed(2)},ease:'power2.inOut'},${at2.toFixed(2)});`);
+            parts.push(`  tl.to('#hl2',{x:${r(g2.b2.left - g2.b.left)},y:${r(g2.b2.top - g2.b.top)},width:${r(g2.b2.width)},height:${r(g2.b2.height)},duration:${SHOT_BEAT_TIMING.secondFocus2Sec.toFixed(2)},ease:'power2.inOut'},${at2.toFixed(2)});`);
           }
         }
       }
       if (b2) {
         const at = focus2At.toFixed(2);
-        parts.push(`  tl.to('#shot',{y:${r(y2)},duration:.6,ease:'power2.inOut'},${at});`);
+        parts.push(`  tl.to('#shot',{y:${r(y2)},duration:${focus2TweenSec.toFixed(2)},ease:'power2.inOut'},${at});`);
         // 框移走 transform（left/top 是 layout 屬性，會整數像素跳動：lint:gsap_non_transform_motion）
-        parts.push(`  tl.to('#hl',{x:${r(b2.left - b1.left)},y:${r(b2.top - b1.top)},width:${r(b2.width)},height:${r(b2.height)},duration:.6,ease:'power2.inOut'},${at});`);
+        parts.push(`  tl.to('#hl',{x:${r(b2.left - b1.left)},y:${r(b2.top - b1.top)},width:${r(b2.width)},height:${r(b2.height)},duration:${focus2TweenSec.toFixed(2)},ease:'power2.inOut'},${at});`);
       }
       return `\n${parts.join('\n')}\n`;
     };

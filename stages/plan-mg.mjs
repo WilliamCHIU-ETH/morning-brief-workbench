@@ -22,7 +22,12 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { resolveProject, readJson, writeJson } from './lib/project.mjs';
 import { greetingWindow, openTitleEnd as resolveOpenTitleEnd, resolveLeads } from './lib/lead.mjs';
-import { computeVisualWindow, resolveOrderedBeatTimes } from './lib/rhythm.mjs';
+import {
+  computeVisualWindow,
+  resolveBeatTransitions,
+  resolveOrderedBeatTimes,
+  shotBeatTweenSec,
+} from './lib/rhythm.mjs';
 import { TEMPLATES } from './mg-templates.mjs';
 import { SHOT, imageSize } from './shot-template.mjs';
 
@@ -347,7 +352,9 @@ function resolveShotRhythm(slot, data, lead) {
     throw new Error(`格 ${slot.id} 的拍點無法解析：${error.message} `
       + 'shot-plan 的 target 必須逐一存在於該格句子且照字序排列；請重截，或改寫 responsibility／用 plan-hints.json 押回主播。');
   }
-  const beats = timed.map((beat, index) => ({
+  const rhythmLeadSec = Number(visualWindowThreshold.leadSec);
+  const dwellMinSec = Number(visualWindowThreshold.dwellMinSec);
+  const baseBeats = timed.map((beat, index) => ({
     ...specs[index],
     anchor: beat.anchor,
     targetIndex: selected[index].targetIndex,
@@ -356,15 +363,23 @@ function resolveShotRhythm(slot, data, lead) {
     endSec: beat.endSec,
     rawAtSec: beat.rawAtSec,
     rawEndSec: beat.rawEndSec,
-    localSec: Number((beat.atSec - segment.startSec + lead.actualLead).toFixed(4)),
-    localEndSec: Number((beat.endSec - segment.startSec + lead.actualLead).toFixed(4)),
+    tweenSec: shotBeatTweenSec(specs[index].kind, {
+      secondFocus2: specs[index].kind === 'second' && Boolean(data.second?.focus2),
+    }),
     timing: beat.timing,
   }));
+  const semanticEnterSec = Math.max(segment.startSec, baseBeats[0].atSec - rhythmLeadSec);
+  let beats = resolveBeatTransitions({
+    beats: baseBeats,
+    windowEnterSec: semanticEnterSec,
+    leadSec: rhythmLeadSec,
+    dwellMinSec,
+  });
   const visualWindow = computeVisualWindow({
     segmentStartSec: segment.startSec,
     segmentEndSec: segment.endSec,
     beats,
-    leadSec: Number(visualWindowThreshold.leadSec),
+    leadSec: rhythmLeadSec,
     tailSec: Number(visualWindowThreshold.tailSec),
     // 2s 是 gate 硬下界；單拍靜態 shot 以 3s 為規劃中心，對齊本次 audit 對格 04 的 3–4s 判準。
     minSec: beats.length === 1
@@ -372,6 +387,22 @@ function resolveShotRhythm(slot, data, lead) {
       : Number(visualWindowThreshold.minSec),
     maxSec: Number(visualWindowThreshold.maxSec),
     fadeSec: Number(visualWindowThreshold.fadeSec),
+    dwellMinSec,
+  });
+  const localOffset = lead.actualLead - segment.startSec;
+  beats = beats.map((beat, index) => {
+    const dwellUntilSec = index + 1 < beats.length
+      ? beats[index + 1].transitionStartSec
+      : visualWindow.exitSec - visualWindow.fadeSec;
+    return {
+      ...beat,
+      localSec: Number((beat.atSec + localOffset).toFixed(4)),
+      localEndSec: Number((beat.endSec + localOffset).toFixed(4)),
+      localTransitionStartSec: Number((beat.transitionStartSec + localOffset).toFixed(4)),
+      localArrivalSec: Number((beat.arrivalSec + localOffset).toFixed(4)),
+      dwellUntilSec: Number(dwellUntilSec.toFixed(4)),
+      dwellSec: Number((dwellUntilSec - beat.arrivalSec).toFixed(4)),
+    };
   });
   return { beats, visualWindow };
 }

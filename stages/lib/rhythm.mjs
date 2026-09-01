@@ -1,6 +1,28 @@
 const n4 = (value) => Number(Number(value).toFixed(4));
 const EPS = 1e-6;
 
+// 必須和 shot-template 的實際 GSAP 動畫一致；gate 也從這裡推導「完全到位」時間，
+// 不相信 mg-plan 自報一個較短的 tweenSec 來灌出假的可讀停留。
+export const SHOT_BEAT_TIMING = Object.freeze({
+  focusSec: 0.3,
+  focus2Sec: 0.6,
+  secondSec: 0.3,
+  secondFocus2DelaySec: 0.8,
+  secondFocus2Sec: 0.5,
+});
+
+export function shotBeatTweenSec(kind, { secondFocus2 = false } = {}) {
+  if (kind === 'focus') return SHOT_BEAT_TIMING.focusSec;
+  if (kind === 'focus2') return SHOT_BEAT_TIMING.focus2Sec;
+  if (kind === 'second') {
+    return secondFocus2
+      ? SHOT_BEAT_TIMING.secondSec + SHOT_BEAT_TIMING.secondFocus2DelaySec
+        + SHOT_BEAT_TIMING.secondFocus2Sec
+      : SHOT_BEAT_TIMING.secondSec;
+  }
+  throw new TypeError(`未知 shot 拍點 kind：${JSON.stringify(kind)}`);
+}
+
 function indexedCharTimes(charTimes) {
   if (!Array.isArray(charTimes) || !charTimes.length) {
     throw new TypeError('charTimes 必須是非空陣列');
@@ -127,7 +149,52 @@ export function resolveOrderedBeatTimes({ charTimes, segment, anchors, minGapSec
   });
 }
 
-/** R1：第一拍前 leadSec 進、末拍講完後 tailSec 退；段界、下界與目標上界在此統一。 */
+/**
+ * P3：每拍在主張錨前 leadSec 起手；若非首拍會吃掉前拍 dwell，前拍停留優先，
+ * 把切換夾到「前拍到位＋dwellMinSec」之後。首拍也沿用窗口既有的 0.4s 前導，
+ * 讓黃框在主張詞前開始 scale-in，而不是等唸到才動。
+ */
+export function resolveBeatTransitions({
+  beats,
+  windowEnterSec,
+  leadSec = 0.4,
+  dwellMinSec = 0.8,
+}) {
+  const enter = Number(windowEnterSec);
+  if (!Array.isArray(beats) || !beats.length) throw new TypeError('拍點切換至少需要一個拍點');
+  for (const [name, value] of Object.entries({ windowEnterSec: enter, leadSec, dwellMinSec })) {
+    if (!(Number.isFinite(value) && value >= 0)) throw new TypeError(`${name} 必須是 >=0 的有限秒數`);
+  }
+
+  let previousArrival = null;
+  return beats.map((beat, index) => {
+    const at = Number(beat.atSec);
+    const tweenSec = Number(beat.tweenSec);
+    if (!(Number.isFinite(at) && Number.isFinite(tweenSec) && tweenSec >= 0)) {
+      throw new TypeError(`第 ${index + 1} 拍缺合法 atSec／tweenSec`);
+    }
+    const desired = Math.max(enter, at - leadSec);
+    const dwellFloor = previousArrival === null ? -Infinity : previousArrival + dwellMinSec;
+    const transitionStartSec = n4(Math.max(desired, dwellFloor));
+    const arrivalSec = n4(transitionStartSec + tweenSec);
+    const clamped = transitionStartSec - desired > EPS;
+    previousArrival = arrivalSec;
+    return {
+      ...beat,
+      tweenSec: n4(tweenSec),
+      desiredTransitionStartSec: n4(desired),
+      transitionStartSec,
+      arrivalSec,
+      transitionTiming: clamped
+        ? `lead ${leadSec}s；前拍到位後保留 ${dwellMinSec}s` : `lead ${leadSec}s`,
+    };
+  });
+}
+
+/**
+ * R1＋P4：第一拍前 leadSec 進、末拍講完後 tailSec 退；每拍到位後至少可讀
+ * dwellMinSec。2–6s padding 必須先讓位給停留，段界仍放不下就 fail closed。
+ */
 export function computeVisualWindow({
   segmentStartSec,
   segmentEndSec,
@@ -137,6 +204,7 @@ export function computeVisualWindow({
   minSec = 2,
   maxSec = 6,
   fadeSec = 0.3,
+  dwellMinSec = 0.8,
 }) {
   const start = Number(segmentStartSec);
   const end = Number(segmentEndSec);
@@ -144,19 +212,43 @@ export function computeVisualWindow({
     throw new TypeError('視覺窗口需要合法的 segmentStartSec／segmentEndSec');
   }
   if (!Array.isArray(beats) || !beats.length) throw new TypeError('視覺窗口至少需要一個拍點');
-  for (const [name, value] of Object.entries({ leadSec, tailSec, minSec, maxSec, fadeSec })) {
+  for (const [name, value] of Object.entries({ leadSec, tailSec, minSec, maxSec, fadeSec, dwellMinSec })) {
     if (!(Number.isFinite(value) && value >= 0)) throw new TypeError(`${name} 必須是 >=0 的有限秒數`);
   }
   if (!(maxSec >= minSec && minSec > 0)) throw new TypeError('視覺窗口需要 0 < minSec <= maxSec');
 
   const firstBeat = Math.min(...beats.map((beat) => Number(beat.atSec)));
   const lastBeat = Math.max(...beats.map((beat) => Number(beat.endSec)));
-  if (!(Number.isFinite(firstBeat) && Number.isFinite(lastBeat) && lastBeat >= firstBeat)) {
-    throw new TypeError('拍點缺 atSec／endSec');
+  const firstTransition = Math.min(...beats.map((beat) => Number(beat.transitionStartSec)));
+  const lastArrival = Math.max(...beats.map((beat) => Number(beat.arrivalSec)));
+  if (!(Number.isFinite(firstBeat) && Number.isFinite(lastBeat) && lastBeat >= firstBeat
+    && Number.isFinite(firstTransition) && Number.isFinite(lastArrival))) {
+    throw new TypeError('拍點缺 atSec／endSec／transitionStartSec／arrivalSec');
+  }
+  for (let index = 0; index < beats.length; index++) {
+    const beat = beats[index];
+    const transition = Number(beat.transitionStartSec);
+    const arrival = Number(beat.arrivalSec);
+    if (!(transition >= start - EPS && arrival >= transition - EPS && arrival <= end + EPS)) {
+      throw new Error(`拍點「${beat.anchor ?? index + 1}」的切換無法完整放進段界 ${start.toFixed(2)}–${end.toFixed(2)}s；請換錨、減拍，或用 plan-hints.json 押回主播。`);
+    }
+    if (index > 0) {
+      const previous = beats[index - 1];
+      const dwell = transition - Number(previous.arrivalSec);
+      if (dwell < dwellMinSec - EPS) {
+        throw new Error(`拍點「${previous.anchor ?? index}」到位後只停留 ${dwell.toFixed(2)}s；至少要 ${dwellMinSec}s。請換錨、減拍，或用 plan-hints.json 押回主播。`);
+      }
+    }
+  }
+
+  const p4Exit = lastArrival + dwellMinSec + fadeSec;
+  if (p4Exit > end + EPS) {
+    const last = beats.at(-1);
+    throw new Error(`段界到 ${end.toFixed(2)}s，放不下末拍「${last.anchor ?? '?'}」在 ${lastArrival.toFixed(2)}s 到位後 ${dwellMinSec}s 停留＋${fadeSec}s 淡出；請換錨、減拍，或用 plan-hints.json 押回主播。`);
   }
 
   let enter = Math.max(start, firstBeat - leadSec);
-  let exit = Math.min(end, lastBeat + tailSec);
+  let exit = Math.min(end, Math.max(lastBeat + tailSec, p4Exit));
 
   // 下界：先左右平均補，再把受段界擋住的餘量補到另一側。
   if (exit - enter < minSec - EPS) {
@@ -171,19 +263,24 @@ export function computeVisualWindow({
     enter -= leftAgain;
     deficit -= leftAgain;
     if (deficit > EPS) {
-      throw new Error(`段長 ${(end - start).toFixed(2)}s，放不下視覺窗口下界 ${minSec}s。`);
+      throw new Error(`段長 ${(end - start).toFixed(2)}s，放不下視覺窗口下界 ${minSec}s；請換錨、減拍，或用 plan-hints.json 押回主播。`);
     }
   }
 
-  const requiredSpan = lastBeat - firstBeat;
+  // 上界：先裁第一拍 lead／末拍 tail 等 padding；真正不可裁的是拍點切換、完整發聲、
+  // 末拍到位後 dwell 與 fade。只有這個必要跨度本身 > maxSec 才准許例外。
+  const requiredStart = Math.max(start, firstTransition);
+  const requiredEnd = Math.min(end, Math.max(lastBeat, p4Exit));
+  const requiredSpan = requiredEnd - requiredStart;
   let overMaxReason = null;
   if (exit - enter > maxSec + EPS) {
     if (requiredSpan > maxSec + EPS) {
-      overMaxReason = `涵蓋 ${beats.length} 個拍點需 ${requiredSpan.toFixed(2)}s（大於 ${maxSec}s 目標上界）`;
+      enter = requiredStart;
+      exit = requiredEnd;
+      overMaxReason = `涵蓋 ${beats.length} 個拍點切換、完整發聲與 ${dwellMinSec}s 到位停留需 ${requiredSpan.toFixed(2)}s（大於 ${maxSec}s 目標上界）`;
     } else {
-      // 拍點本身放得進 maxSec 時，只裁 padding，不裁拍點。
-      const low = Math.max(start, lastBeat - maxSec);
-      const high = Math.min(firstBeat, end - maxSec);
+      const low = Math.max(start, requiredEnd - maxSec);
+      const high = Math.min(requiredStart, end - maxSec);
       enter = Math.max(low, Math.min(high, firstBeat - leadSec));
       exit = enter + maxSec;
     }
@@ -191,11 +288,17 @@ export function computeVisualWindow({
 
   enter = n4(enter);
   exit = n4(exit);
+  const actualFade = n4(Math.min(fadeSec, (exit - enter) / 4));
+  const fadeStart = exit - actualFade;
+  const lastDwell = fadeStart - lastArrival;
+  if (lastDwell < dwellMinSec - EPS) {
+    throw new Error(`末拍「${beats.at(-1).anchor ?? '?'}」到位後只停留 ${lastDwell.toFixed(2)}s 就淡出；至少要 ${dwellMinSec}s。請換錨、減拍，或用 plan-hints.json 押回主播。`);
+  }
   return {
     enterSec: enter,
     exitSec: exit,
     durationSec: n4(exit - enter),
-    fadeSec: n4(Math.min(fadeSec, (exit - enter) / 4)),
+    fadeSec: actualFade,
     ...(overMaxReason ? { overMaxReason } : {}),
   };
 }

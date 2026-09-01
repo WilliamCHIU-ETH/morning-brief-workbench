@@ -8,7 +8,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveLeads } from '../stages/lib/lead.mjs';
-import { computeVisualWindow, resolveOrderedBeatTimes } from '../stages/lib/rhythm.mjs';
+import {
+  computeVisualWindow,
+  resolveBeatTransitions,
+  resolveOrderedBeatTimes,
+  shotBeatTweenSec,
+} from '../stages/lib/rhythm.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = path.join(ROOT, 'fixtures', 'project-v4c');
@@ -159,16 +164,53 @@ test('同分句多拍：逐字時間相撞時仍照字序且至少間隔 0.8s', 
   assert.match(beats[1].timing, /最小拍距/);
 });
 
-test('R1 超過 6s 只因涵蓋遠距拍點，會留下可稽核原因', () => {
+test('P3 前導碰到前拍停留時向後夾，不擠壓 0.8s 可讀時間', () => {
+  const beats = resolveBeatTransitions({
+    beats: [
+      { kind: 'focus', anchor: '甲', atSec: 1, endSec: 1.1, tweenSec: shotBeatTweenSec('focus') },
+      { kind: 'focus2', anchor: '乙', atSec: 1.8, endSec: 1.9, tweenSec: shotBeatTweenSec('focus2') },
+    ],
+    windowEnterSec: 0.6,
+    leadSec: 0.4,
+    dwellMinSec: 0.8,
+  });
+  assert.equal(beats[0].transitionStartSec, 0.6);
+  assert.equal(beats[0].arrivalSec, 0.9);
+  assert.equal(beats[1].desiredTransitionStartSec, 1.4);
+  assert.equal(beats[1].transitionStartSec, 1.7);
+  assert.equal(Number((beats[1].transitionStartSec - beats[0].arrivalSec).toFixed(4)), 0.8);
+  assert.match(beats[1].transitionTiming, /前拍到位後保留/);
+});
+
+test('P4 段界放不下末拍到位後停留＋淡出時 fail closed 並指路', () => {
+  const beats = resolveBeatTransitions({
+    beats: [{ kind: 'focus', anchor: '太晚', atSec: 2.5, endSec: 2.6, tweenSec: shotBeatTweenSec('focus') }],
+    windowEnterSec: 2.1,
+  });
+  assert.throws(() => computeVisualWindow({
+    segmentStartSec: 0,
+    segmentEndSec: 3,
+    beats,
+  }), /放不下末拍.*停留.*淡出.*換錨、減拍.*plan-hints/s);
+});
+
+test('R1 超過 6s 只因涵蓋拍點切換與 P4 停留，會留下可稽核原因', () => {
+  const beats = resolveBeatTransitions({
+    beats: [
+      { kind: 'focus', anchor: '甲', atSec: 1, endSec: 1.2, tweenSec: shotBeatTweenSec('focus') },
+      { kind: 'focus2', anchor: '乙', atSec: 8, endSec: 8.2, tweenSec: shotBeatTweenSec('focus2') },
+    ],
+    windowEnterSec: 0.6,
+  });
   const window = computeVisualWindow({
     segmentStartSec: 0,
     segmentEndSec: 10,
-    beats: [{ atSec: 1, endSec: 1.2 }, { atSec: 8, endSec: 8.2 }],
+    beats,
     minSec: 2,
     maxSec: 6,
   });
   assert.ok(window.durationSec > 6);
-  assert.match(window.overMaxReason, /涵蓋 2 個拍點/);
+  assert.match(window.overMaxReason, /涵蓋 2 個拍點切換.*到位停留/);
 });
 
 test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween、主片只掛視覺窗口', (t) => {
@@ -183,7 +225,7 @@ test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween
         focus2: { x: 0, y: 0, w: 1, h: 1 },
         targets: [
           { target: '214', by: 'script-number' },
-          { target: '703', by: 'script-number' },
+          { target: '道瓊', by: 'script-claim' },
         ],
       },
     },
@@ -192,19 +234,23 @@ test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
   const slot = plan.slots.find((entry) => entry.id === '02');
-  assert.deepEqual(slot.beats.map((beat) => [beat.anchor, beat.atSec]), [['214', 7.12], ['703', 9.64]]);
+  assert.deepEqual(slot.beats.map((beat) => [beat.anchor, beat.atSec]), [['214', 7.12], ['道瓊', 8.52]]);
+  assert.deepEqual(slot.beats.map((beat) => [beat.transitionStartSec, beat.arrivalSec, beat.dwellSec]), [
+    [6.72, 7.02, 1.1],
+    [8.12, 8.72, 0.94],
+  ]);
   assert.deepEqual(slot.visualWindow, {
-    enterSec: 6.72, exitSec: 10.56, durationSec: 3.84, fadeSec: 0.3,
+    enterSec: 6.72, exitSec: 9.96, durationSec: 3.24, fadeSec: 0.3,
   });
   const composition = fs.readFileSync(path.join(dir, 'compositions', '02-shot.html'), 'utf8');
-  assert.match(composition, /#hl'.*1\.65\)/);
-  assert.match(composition, /tl\.to\('#hl'.*4\.17\)/);
+  assert.match(composition, /#hl'.*duration:0\.30.*1\.25\)/);
+  assert.match(composition, /tl\.to\('#hl'.*duration:0\.60.*2\.65\)/);
 
   makeRendersForPlan(dir);
   result = run(BUILD_MAIN, dir);
   assert.equal(result.status, 0, result.stderr);
   const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
-  assert.match(html, /id="broll-02"[^>]*data-start="6\.72" data-duration="3\.84" data-media-start="1\.25"/);
+  assert.match(html, /id="broll-02"[^>]*data-start="6\.72" data-duration="3\.24" data-media-start="1\.25"/);
   assert.match(html, /#broll-02'.*opacity:0.*6\.7200/);
 
   let gateResult = run(RUN_GATES, dir, ['--json']);
@@ -221,13 +267,33 @@ test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween
   assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /相鄰拍點只隔/);
   slot.beats[1] = secondBeat;
 
+  const unclampedTransition = { ...slot.beats[1] };
+  slot.beats[1].transitionStartSec = slot.beats[0].arrivalSec + 0.2;
+  slot.beats[1].arrivalSec = slot.beats[1].transitionStartSec + slot.beats[1].tweenSec;
+  writeJson(path.join(dir, 'mg-plan.json'), plan);
+  gateResult = run(RUN_GATES, dir, ['--json']);
+  gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'failed');
+  assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /不得擠壓前拍|切下一拍/);
+  slot.beats[1] = unclampedTransition;
+
+  const readableWindow = { ...slot.visualWindow };
+  slot.visualWindow.exitSec -= 0.2;
+  slot.visualWindow.durationSec = Number((slot.visualWindow.exitSec - slot.visualWindow.enterSec).toFixed(2));
+  writeJson(path.join(dir, 'mg-plan.json'), plan);
+  gateResult = run(RUN_GATES, dir, ['--json']);
+  gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'failed');
+  assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /末拍到位後只停留/);
+  slot.visualWindow = readableWindow;
+
   slot.beats[1].anchor = '不在句內';
   writeJson(path.join(dir, 'mg-plan.json'), plan);
   result = run(BUILD_MAIN, dir);
   assert.equal(result.status, 1);
   assert.match(result.stderr, /拍點文字錨「不在句內」不在該格句子內/);
 
-  slot.beats[1].anchor = '703';
+  slot.beats[1].anchor = '道瓊';
   slot.visualWindow.enterSec = 5;
   slot.visualWindow.durationSec = Number((slot.visualWindow.exitSec - 5).toFixed(2));
   writeJson(path.join(dir, 'mg-plan.json'), plan);
@@ -237,7 +303,7 @@ test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween
   assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /超出段界/);
 });
 
-test('shot second 在第二個文字拍點做 0.3s 跨頁交叉淡變', (t) => {
+test('shot second 提前跨頁，second.focus2 完全到位後仍保留 P4 停留', (t) => {
   const dir = project(t);
   makeTinyPng(path.join(dir, 'assets', 'first.png'));
   makeTinyPng(path.join(dir, 'assets', 'second.png'));
@@ -248,20 +314,33 @@ test('shot second 在第二個文字拍點做 0.3s 跨頁交叉淡變', (t) => {
         focus: { x: 0, y: 0, w: 1, h: 1 },
         targets: [
           { target: '214', by: 'manual:first' },
-          { target: '703', by: 'manual:second' },
+          { target: '點美股', by: 'manual:second' },
         ],
         second: {
           page: 'second', image: 'assets/second.png', cropTop: 0,
           focus: { x: 0, y: 0, w: 1, h: 1 },
+          focus2: { x: 0, y: 0, w: 1, h: 1 },
         },
       },
     },
   });
   const result = run(PLAN_MG, dir, ['--write']);
   assert.equal(result.status, 0, result.stderr);
+  const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
+  const slot = plan.slots.find((entry) => entry.id === '02');
+  const secondBeat = slot.beats.find((beat) => beat.kind === 'second');
+  assert.deepEqual(
+    [secondBeat.transitionStartSec, secondBeat.tweenSec, secondBeat.arrivalSec, secondBeat.dwellSec],
+    [7.82, 1.6, 9.42, 0.8],
+  );
   const composition = fs.readFileSync(path.join(dir, 'compositions', '02-shot.html'), 'utf8');
-  assert.match(composition, /tl\.to\('#shot',\{autoAlpha:0,duration:\.3[^\n]+4\.17\)/);
-  assert.match(composition, /tl\.to\('#shot2',\{autoAlpha:1,duration:\.3[^\n]+4\.17\)/);
+  assert.match(composition, /tl\.to\('#shot',\{autoAlpha:0,duration:0\.30[^\n]+2\.35\)/);
+  assert.match(composition, /tl\.to\('#shot2',\{autoAlpha:1,duration:0\.30[^\n]+2\.35\)/);
+  assert.match(composition, /tl\.to\('#hl2'.*duration:0\.50[^\n]+3\.45\)/);
+
+  const gateResult = run(RUN_GATES, dir, ['--json']);
+  const gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'passed');
 });
 
 test('shot target 不在該格句子時 fail closed 並指向重截／改 responsibility', (t) => {

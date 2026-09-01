@@ -25,6 +25,7 @@ import {
 } from './lib/heygen-audio.mjs';
 import { imageSize } from './shot-template.mjs';
 import { axDateMatchesDataAsOf, normalizeIsoDate } from './lib/as-of-shot.mjs';
+import { shotBeatTweenSec } from './lib/rhythm.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
@@ -497,10 +498,14 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
         const maxSec = Number(threshold.maxSec);
         const fadeSec = Number(threshold.fadeSec);
         const minBeatGapSec = Number(threshold.minBeatGapSec);
+        const leadSec = Number(threshold.leadSec);
+        const dwellMinSec = Number(threshold.dwellMinSec);
         if (!(Number.isFinite(minSec) && Number.isFinite(maxSec) && minSec > 0 && maxSec >= minSec
           && Number.isFinite(fadeSec) && fadeSec > 0
-          && Number.isFinite(minBeatGapSec) && minBeatGapSec >= 0)) {
-          throw new Error('acceptance.json 的 shot.visual-window minSec／maxSec／fadeSec／minBeatGapSec 不合法');
+          && Number.isFinite(minBeatGapSec) && minBeatGapSec >= 0
+          && Number.isFinite(leadSec) && leadSec >= 0
+          && Number.isFinite(dwellMinSec) && dwellMinSec >= 0)) {
+          throw new Error('acceptance.json 的 shot.visual-window minSec／maxSec／fadeSec／minBeatGapSec／leadSec／dwellMinSec 不合法');
         }
         const segments = new Map(load('segmentLedger').segments
           .map((segment) => [String(segment.id), segment]));
@@ -530,38 +535,94 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
             bad.push(`${slot.id} fadeSec ${JSON.stringify(window.fadeSec)} ≠ ${fadeSec}s`);
           }
           const beats = Array.isArray(slot.beats) ? slot.beats : [];
+          let lastReadableDwell = null;
           if (!beats.length) {
             bad.push(`${slot.id} 0 個拍點`);
           } else {
-            let previous = -Infinity;
-            for (const beat of beats) {
+            let previousAt = -Infinity;
+            let previousArrival = null;
+            const transitions = [];
+            const arrivals = [];
+            for (const [index, beat] of beats.entries()) {
               const at = Number(beat.atSec);
               const end = Number(beat.endSec);
               if (!(Number.isFinite(at) && Number.isFinite(end) && end >= at)) {
                 bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」時間不合法`); continue;
               }
-              if (at < previous - EPS) bad.push(`${slot.id} 拍點順序反了`);
-              if (Number.isFinite(previous) && at - previous < minBeatGapSec - EPS) {
-                bad.push(`${slot.id} 相鄰拍點只隔 ${(at - previous).toFixed(2)}s，小於 ${minBeatGapSec}s`);
+              if (at < previousAt - EPS) bad.push(`${slot.id} 拍點順序反了`);
+              if (Number.isFinite(previousAt) && at - previousAt < minBeatGapSec - EPS) {
+                bad.push(`${slot.id} 相鄰拍點只隔 ${(at - previousAt).toFixed(2)}s，小於 ${minBeatGapSec}s`);
               }
-              previous = at;
+              previousAt = at;
               if (at < enter - EPS || end > exit + EPS) {
                 bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」${at.toFixed(2)}–${end.toFixed(2)}s 不在窗口內`);
               }
+
+              let expectedTween;
+              try {
+                expectedTween = shotBeatTweenSec(beat.kind, {
+                  secondFocus2: beat.kind === 'second' && Boolean(slot.data?.second?.focus2),
+                });
+              } catch (error) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」${error.message}`);
+                continue;
+              }
+              const tween = Number(beat.tweenSec);
+              const transition = Number(beat.transitionStartSec);
+              const arrival = Number(beat.arrivalSec);
+              if (!(Number.isFinite(tween) && Number.isFinite(transition) && Number.isFinite(arrival))) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」缺 tweenSec／transitionStartSec／arrivalSec`);
+                continue;
+              }
+              if (Math.abs(tween - expectedTween) > EPS) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」tweenSec ${tween.toFixed(2)} ≠ 實際版型 ${expectedTween.toFixed(2)}s`);
+              }
+              if (Math.abs(arrival - (transition + tween)) > EPS) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」arrivalSec 不等於 transitionStartSec＋tweenSec`);
+              }
+              const expectedTransition = Math.max(
+                enter,
+                at - leadSec,
+                previousArrival === null ? -Infinity : previousArrival + dwellMinSec,
+              );
+              if (Math.abs(transition - expectedTransition) > EPS) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」切換起點 ${transition.toFixed(2)}s，應為 ${expectedTransition.toFixed(2)}s（anchor 前導 ${leadSec}s，且不得擠壓前拍 ${dwellMinSec}s 停留）`);
+              }
+              if (transition < enter - EPS || arrival > exit + EPS) {
+                bad.push(`${slot.id} 拍點「${beat.anchor ?? '?'}」切換 ${transition.toFixed(2)}–${arrival.toFixed(2)}s 不在窗口內`);
+              }
+              if (previousArrival !== null && transition - previousArrival < dwellMinSec - EPS) {
+                bad.push(`${slot.id} 拍點 ${index} 到位後只停留 ${(transition - previousArrival).toFixed(2)}s 就切下一拍，小於 ${dwellMinSec}s`);
+              }
+              transitions.push(transition);
+              arrivals.push(arrival);
+              previousArrival = arrival;
             }
-            if (duration > maxSec + EPS) {
-              const beatSpan = Math.max(...beats.map((beat) => Number(beat.endSec)))
-                - Math.min(...beats.map((beat) => Number(beat.atSec)));
-              if (!(beatSpan > maxSec + EPS)) {
-                bad.push(`${slot.id} 窗口 ${duration.toFixed(2)}s 超過 ${maxSec}s，但拍點本身只跨 ${beatSpan.toFixed(2)}s`);
-              } else if (typeof window.overMaxReason !== 'string' || !window.overMaxReason.trim()) {
-                bad.push(`${slot.id} 超過 ${maxSec}s 卻沒有 overMaxReason`);
-              } else {
-                overMax.push(`${slot.id}：${window.overMaxReason}`);
+
+            if (arrivals.length === beats.length) {
+              const fadeStart = exit - fadeSec;
+              lastReadableDwell = fadeStart - arrivals.at(-1);
+              if (lastReadableDwell < dwellMinSec - EPS) {
+                bad.push(`${slot.id} 末拍到位後只停留 ${lastReadableDwell.toFixed(2)}s 就開始淡出，小於 ${dwellMinSec}s`);
+              }
+              if (duration > maxSec + EPS) {
+                const requiredStart = Math.min(...transitions);
+                const requiredEnd = Math.max(
+                  ...beats.map((beat) => Number(beat.endSec)),
+                  arrivals.at(-1) + dwellMinSec + fadeSec,
+                );
+                const requiredSpan = requiredEnd - requiredStart;
+                if (!(requiredSpan > maxSec + EPS)) {
+                  bad.push(`${slot.id} 窗口 ${duration.toFixed(2)}s 超過 ${maxSec}s，但拍點切換＋可讀停留只需 ${requiredSpan.toFixed(2)}s`);
+                } else if (typeof window.overMaxReason !== 'string' || !window.overMaxReason.trim()) {
+                  bad.push(`${slot.id} 超過 ${maxSec}s 卻沒有 overMaxReason`);
+                } else {
+                  overMax.push(`${slot.id}：${window.overMaxReason}`);
+                }
               }
             }
           }
-          measured.push(`${slot.id} ${duration.toFixed(2)}s/${beats.length}拍`);
+          measured.push(`${slot.id} ${duration.toFixed(2)}s/${beats.length}拍${lastReadableDwell === null ? '' : `／末拍停留 ${lastReadableDwell.toFixed(2)}s`}`);
         }
         record(id, bad.length ? 'failed' : 'passed',
           bad.length ? bad.slice(0, 5).join('；') : measured.join('、'),

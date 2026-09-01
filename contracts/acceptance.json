@@ -386,7 +386,7 @@
     {
       "id": "shot.visual-window",
       "stage": "shot",
-      "rule": "mg-plan.json 的 shot 格有視覺窗口時，窗口必須完全落在該句段界內、長度通常為 2–6 秒，並涵蓋該格全部文字拍點；多拍起點至少相隔 minBeatGapSec，窗口淡入淡出必須等於 fadeSec；超過 6 秒只允許因拍點本身跨越超過 6 秒，且 visualWindow.overMaxReason 必須說明",
+      "rule": "mg-plan.json 的 shot 格有視覺窗口時，窗口必須完全落在該句段界內、長度通常為 2–6 秒，並涵蓋該格全部文字拍點；格內非首拍由 anchor 前 leadSec 起手，但不得擠壓前拍到位後 dwellMinSec 的可讀停留；每拍 tween 完全到位後，到下一拍起手或窗口 fade 起手都必須至少停留 dwellMinSec；窗口淡入淡出必須等於 fadeSec。超過 6 秒只允許因拍點、切換與可讀停留本身跨越超過 6 秒，且 visualWindow.overMaxReason 必須說明",
       "threshold": {
         "minSec": 2,
         "maxSec": 6,
@@ -394,11 +394,12 @@
         "leadSec": 0.4,
         "tailSec": 1,
         "fadeSec": 0.3,
-        "minBeatGapSec": 0.8
+        "minBeatGapSec": 0.8,
+        "dwellMinSec": 0.8
       },
-      "incident": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉記錄的 2026-09-01 使用者 audit：0827 對齊版的強茂格整句 6.7 秒蓋屏（應 3–4 秒）、加權格講點數時仍停在成交量表（缺拍）、清單項未唸先現。",
-      "source": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉R1／R2",
-      "counterexample": "若仍以 ledger 整句當素材顯示窗，格 04 會從『錢選了功率元件』一路蓋到 150.5 元講完；若只縮短 data-duration 卻不驗拍點，末拍又可能被提早切掉。"
+      "incident": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉記錄的 2026-09-01 兩輪使用者 audit：首輪發現強茂格整句 6.7 秒蓋屏、加權格缺拍、清單項未唸先現；二修在 00:12 發現切換等到『八千億』才動、00:14 發現成交量框 tween 到位約 0.2 秒整格就淡出。",
+      "source": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉第一性原理與 P1／P2／P3／P4",
+      "counterexample": "若第二拍仍在 anchor 起音才開始移框，主張說出時證據還沒到位；若只保證窗口包住 anchor，成交量框可以 tween 完 0.2 秒就淡出，形式上有拍點但觀眾根本讀不完。"
     },
     {
       "id": "shot.data-as-of",
