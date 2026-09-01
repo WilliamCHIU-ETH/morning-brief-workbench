@@ -14,7 +14,8 @@
   "canvas": {
     "width": 1080,
     "height": 1920,
-    "fps": 30
+    "$fps": "25＝跟 HeyGen avatar_iv 的原生幀率對齊。原本 30 造成 6:5 pulldown（實測主播段每 75 幀只有 64 unique，畫面抽動，2026-09-01 使用者 audit）。IG Reels 收 23–60fps、25 不會被強轉。",
+    "fps": 25
   },
   "assets": {
     "headerOverlay": "header-overlay-v2.png",
