@@ -213,7 +213,67 @@ test('R1 超過 6s 只因涵蓋拍點切換與 P4 停留，會留下可稽核原
   assert.match(window.overMaxReason, /涵蓋 2 個拍點切換.*到位停留/);
 });
 
-test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween、主片只掛視覺窗口', (t) => {
+test('shot focusList 三拍端到端：N 個同頁框逐拍 tween、窗口與 gate 全部成立', (t) => {
+  const dir = project(t);
+  makeTinyPng(path.join(dir, 'assets', 'shot.png'));
+  writeJson(path.join(dir, 'shot-plan.json'), {
+    slots: {
+      '02': {
+        page: 'TWA00/kLine', image: 'assets/shot.png', cropTop: 0,
+        // 同時留下舊欄位，確認 focusList 是取代而不是再追加兩拍。
+        focus: { x: 0, y: 0, w: 1, h: 1 },
+        focus2: { x: 0, y: 0, w: 1, h: 1 },
+        focusList: [
+          { x: 0, y: 0, w: 1, h: 1 },
+          { x: 0, y: 0, w: 1, h: 1 },
+          { x: 0, y: 0, w: 1, h: 1 },
+        ],
+        targets: [
+          { target: '昨日', by: 'manual:first' },
+          { target: '台股', by: 'manual:second' },
+          { target: '214', by: 'manual:third' },
+        ],
+      },
+    },
+  });
+  let result = run(PLAN_MG, dir, ['--write']);
+  assert.equal(result.status, 0, result.stderr);
+  const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
+  const slot = plan.slots.find((entry) => entry.id === '02');
+  assert.deepEqual(slot.beats.map((beat) => [beat.kind, beat.focusIndex, beat.anchor]), [
+    ['focus', 0, '昨日'],
+    ['focus2', 1, '台股'],
+    ['focus2', 2, '214'],
+  ]);
+  assert.deepEqual(slot.beats.map((beat) => [beat.transitionStartSec, beat.arrivalSec, beat.dwellSec]), [
+    [5.52, 5.82, 0.8],
+    [6.62, 7.22, 0.8],
+    [8.02, 8.62, 0.8],
+  ]);
+  assert.deepEqual(slot.visualWindow, {
+    enterSec: 5.52, exitSec: 9.72, durationSec: 4.2, fadeSec: 0.3,
+  });
+  assert.deepEqual(slot.claimCoverage, {
+    claims: ['214'], coveredByBeat: ['214'], coveredBySkip: [],
+  });
+  const composition = fs.readFileSync(path.join(dir, 'compositions', '02-shot.html'), 'utf8');
+  assert.equal((composition.match(/tl\.to\('#hl',\{x:/g) ?? []).length, 2);
+  assert.match(composition, /tl\.to\('#hl'.*duration:0\.60.*1\.15\)/);
+  assert.match(composition, /tl\.to\('#hl'.*duration:0\.60.*2\.55\)/);
+
+  makeRendersForPlan(dir);
+  result = run(BUILD_MAIN, dir);
+  assert.equal(result.status, 0, result.stderr);
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  assert.match(html, /id="broll-02"[^>]*data-start="5\.52" data-duration="4\.2" data-media-start="0\.05"/);
+  const gateResult = run(RUN_GATES, dir, ['--json']);
+  const gateReport = JSON.parse(gateResult.stdout);
+  const gate = gateReport.results.find((entry) => entry.id === 'shot.visual-window');
+  assert.equal(gate.status, 'passed');
+  assert.match(gate.measured, /02 4\.20s\/3拍.*主張 1\/1/);
+});
+
+test('shot 舊 focus/focus2 相容：targets 解析字時間、第二拍 tween、主片只掛視覺窗口', (t) => {
   const dir = project(t);
   const image = path.join(dir, 'assets', 'shot.png');
   makeTinyPng(image);
@@ -234,6 +294,8 @@ test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween
   assert.equal(result.status, 0, result.stderr);
   const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
   const slot = plan.slots.find((entry) => entry.id === '02');
+  assert.equal(Object.prototype.hasOwnProperty.call(slot.data, 'focusList'), false);
+  assert.deepEqual(slot.beats.map((beat) => beat.focusIndex), [0, 1]);
   assert.deepEqual(slot.beats.map((beat) => [beat.anchor, beat.atSec]), [['214', 7.12], ['道瓊', 8.52]]);
   assert.deepEqual(slot.beats.map((beat) => [beat.transitionStartSec, beat.arrivalSec, beat.dwellSec]), [
     [6.72, 7.02, 1.1],
@@ -301,6 +363,44 @@ test('shot 拍點端到端：targets 解析字時間、focus2 在第二拍 tween
   gateReport = JSON.parse(gateResult.stdout);
   assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'failed');
   assert.match(gateReport.results.find((gate) => gate.id === 'shot.visual-window').measured, /超出段界/);
+});
+
+test('shot 數字主張不得靜默丟拍；skippedClaims 可放行，移除後 gate 變紅', (t) => {
+  const dir = project(t);
+  makeTinyPng(path.join(dir, 'assets', 'shot.png'));
+  const shot = {
+    page: 'TWA00/kLine', image: 'assets/shot.png', cropTop: 0,
+    focus: { x: 0, y: 0, w: 1, h: 1 },
+    targets: [
+      { target: '214', by: 'script-number' },
+      { target: '703', by: null },
+    ],
+  };
+  writeJson(path.join(dir, 'shot-plan.json'), { slots: { '02': shot } });
+  let result = run(PLAN_MG, dir, ['--write']);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /703.*這是主張靜默丟拍.*寫 skip 原因或補拍/s);
+
+  shot.skippedClaims = [{ target: '703', reason: '這張 K 線頁沒有第二個可框欄位' }];
+  writeJson(path.join(dir, 'shot-plan.json'), { slots: { '02': shot } });
+  result = run(PLAN_MG, dir, ['--write']);
+  assert.equal(result.status, 0, result.stderr);
+  const plan = JSON.parse(fs.readFileSync(path.join(dir, 'mg-plan.json'), 'utf8'));
+  const slot = plan.slots.find((entry) => entry.id === '02');
+  assert.deepEqual(slot.claimCoverage, {
+    claims: ['214', '703'], coveredByBeat: ['214'], coveredBySkip: ['703'],
+  });
+  let gateResult = run(RUN_GATES, dir, ['--json']);
+  let gateReport = JSON.parse(gateResult.stdout);
+  assert.equal(gateReport.results.find((gate) => gate.id === 'shot.visual-window').status, 'passed');
+
+  delete slot.data.skippedClaims;
+  writeJson(path.join(dir, 'mg-plan.json'), plan);
+  gateResult = run(RUN_GATES, dir, ['--json']);
+  gateReport = JSON.parse(gateResult.stdout);
+  const gate = gateReport.results.find((entry) => entry.id === 'shot.visual-window');
+  assert.equal(gate.status, 'failed');
+  assert.match(gate.measured, /703.*主張靜默丟拍.*寫 skip 原因或補拍/s);
 });
 
 test('shot second 提前跨頁，second.focus2 完全到位後仍保留 P4 停留', (t) => {

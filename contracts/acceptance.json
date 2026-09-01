@@ -375,7 +375,7 @@
     {
       "id": "shot.focus-present",
       "stage": "shot",
-      "rule": "每個素材格在 shot-plan.json 都要有截圖檔與 focus（黃框要框的區域），且 focus 落在圖內",
+      "rule": "每個素材格在 shot-plan.json 都要有截圖檔與至少一個同頁 focus（focusList 存在時取代舊 focus／focus2），且每個框都落在圖內",
       "observed": "對標三支 reel 的 16 個素材格全部有可指的數字或列表",
       "threshold": {
         "everyMaterialSlotHasFocus": true
@@ -386,7 +386,7 @@
     {
       "id": "shot.visual-window",
       "stage": "shot",
-      "rule": "mg-plan.json 的 shot 格有視覺窗口時，窗口必須完全落在該句段界內、長度通常為 2–6 秒，並涵蓋該格全部文字拍點；格內非首拍由 anchor 前 leadSec 起手，但不得擠壓前拍到位後 dwellMinSec 的可讀停留；每拍 tween 完全到位後，到下一拍起手或窗口 fade 起手都必須至少停留 dwellMinSec；窗口淡入淡出必須等於 fadeSec。超過 6 秒只允許因拍點、切換與可讀停留本身跨越超過 6 秒，且 visualWindow.overMaxReason 必須說明",
+      "rule": "mg-plan.json 的 shot 格有視覺窗口時，窗口必須完全落在該句段界內、長度通常為 2–6 秒，並涵蓋該格全部文字拍點；同頁 focusList 可有 N 拍，舊 focus／focus2 映射後同樣逐拍驗證；格內非首拍由 anchor 前 leadSec 起手，但不得擠壓前拍到位後 dwellMinSec 的可讀停留；每拍 tween 完全到位後，到下一拍起手或窗口 fade 起手都必須至少停留 dwellMinSec；窗口淡入淡出必須等於 fadeSec。claimCoverage=true 時，shot-plan targets 中實際出現在講稿的每個數字主張，都必須由 beat anchor 或帶非空 reason 的 skippedClaims 涵蓋。超過 6 秒只允許因拍點、切換與可讀停留本身跨越超過 6 秒，且 visualWindow.overMaxReason 必須說明",
       "threshold": {
         "minSec": 2,
         "maxSec": 6,
@@ -395,11 +395,12 @@
         "tailSec": 1,
         "fadeSec": 0.3,
         "minBeatGapSec": 0.8,
-        "dwellMinSec": 0.8
+        "dwellMinSec": 0.8,
+        "claimCoverage": true
       },
-      "incident": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉記錄的 2026-09-01 兩輪使用者 audit：首輪發現強茂格整句 6.7 秒蓋屏、加權格缺拍、清單項未唸先現；二修在 00:12 發現切換等到『八千億』才動、00:14 發現成交量框 tween 到位約 0.2 秒整格就淡出。",
-      "source": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉第一性原理與 P1／P2／P3／P4",
-      "counterexample": "若第二拍仍在 anchor 起音才開始移框，主張說出時證據還沒到位；若只保證窗口包住 anchor，成交量框可以 tween 完 0.2 秒就淡出，形式上有拍點但觀眾根本讀不完。"
+      "incident": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉記錄的 2026-09-01 三輪使用者 audit：首輪發現整句蓋屏、缺拍與清單預露；二修發現切換太晚、末拍到位後只剩 0.2 秒；三修在 00:11 發現『收在45,832點』說出時框仍停在漲跌欄，因同頁只有 focus/focus2 兩槽，且被犧牲的中間主張沒有 gate 擋。",
+      "source": "docs/screenshot-standard.md〈節奏：視覺窗口與拍點〉第一性原理、P1／P2／P3／P4 與交付前三問",
+      "counterexample": "若同頁框位仍硬限兩個，三主張句會靜默丟掉中間的45,832；若 gate 只從既有 beats 出發，自己犧牲掉的主張永遠不會被掃描，畫面形式上仍可全綠。"
     },
     {
       "id": "shot.data-as-of",

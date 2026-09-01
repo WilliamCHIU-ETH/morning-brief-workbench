@@ -28,8 +28,9 @@ import {
   resolveOrderedBeatTimes,
   shotBeatTweenSec,
 } from './lib/rhythm.mjs';
+import { auditShotClaimCoverage } from './lib/shot-claims.mjs';
 import { TEMPLATES } from './mg-templates.mjs';
-import { SHOT, imageSize } from './shot-template.mjs';
+import { SHOT, imageSize, shotFocusList } from './shot-template.mjs';
 
 // 2026-08-27 會議：素材格全面改實機截圖。shot 版型放獨立檔（另一個 session 正在改 mg-templates.mjs）。
 const ALL = { ...TEMPLATES, shot: SHOT };
@@ -314,32 +315,55 @@ if (ledger) {
   leadById = resolveLeads({ shots: leadShots, leadSec, openTitleEnd: openTitleEndSec, greetingEnd });
 }
 
-// shot-plan 只負責空間。focus／focus2／second 依序各需要一個「真的命中畫面」的 target，
-// 到這裡才用 ASR 字時間把文字錨換成拍點。second.focus2 是同一個 second 主張內的細部
-// 收框，不另造一個沒有文字錨的拍點；它會在 second 拍後接續 tween。
+// shot-plan 只負責空間。focusList 的每一項依序需要一個真的命中畫面的 target；舊
+// focus／focus2 先映成同一個序列，second 再接在所有同頁拍之後。主張涵蓋不依賴 ASR，
+// 所以付費前也會先抓「有數字主張卻沒有拍點／skip 原因」的靜默丟拍。
 function resolveShotRhythm(slot, data, lead) {
-  if (!ledger) return { beats: [], visualWindow: null };
-  const segment = ledger.segments.find((entry) => String(entry.id) === String(slot.id));
-  if (!segment) throw new Error(`格 ${slot.id} 在 segment-ledger.json 找不到，無法計算視覺窗口。`);
-  const charTimes = loadCharTimes();
-  if (!charTimes) {
-    throw new Error(`格 ${slot.id} 是 shot，但缺 asr/script-char-times.json，無法把 targets 解析成拍點；先跑 ASR／align，再重跑 plan-mg。`);
-  }
-
+  const segment = ledger?.segments.find((entry) => String(entry.id) === String(slot.id)) ?? null;
+  if (ledger && !segment) throw new Error(`格 ${slot.id} 在 segment-ledger.json 找不到，無法計算視覺窗口。`);
+  const sourceAnchor = segment?.anchor ?? slot.anchor;
+  const focuses = shotFocusList(data);
   const specs = [
-    { kind: 'focus', rect: 'focus' },
-    ...(data.focus2 ? [{ kind: 'focus2', rect: 'focus2' }] : []),
+    ...focuses.map((_, focusIndex) => ({
+      kind: focusIndex === 0 ? 'focus' : 'focus2',
+      rect: `focusList[${focusIndex}]`,
+      focusIndex,
+    })),
     ...(data.second ? [{ kind: 'second', rect: 'second.focus' }] : []),
   ];
   const targets = (data.targets ?? []).map((target, targetIndex) => ({ ...target, targetIndex }))
     .filter((target) => target.target !== null && target.target !== undefined
       && String(target.target).length && typeof target.by === 'string' && target.by.length);
+  const selected = targets.slice(0, specs.length);
+  const claimAudit = auditShotClaimCoverage({
+    targets: shotSlots[slot.id]?.targets,
+    sourceText: sourceAnchor,
+    beatAnchors: selected.map((target) => target.target),
+    skippedClaims: data.skippedClaims,
+  });
+  if (claimAudit.errors.length) {
+    throw new Error(`格 ${slot.id} 的 skippedClaims 不合法：${claimAudit.errors.join('；')}。每個 skip 都要明寫 target 與 reason。`);
+  }
+  if (claimAudit.missing.length) {
+    throw new Error(`格 ${slot.id} 的講稿數字主張「${claimAudit.missing.join('、')}」沒有成為拍點，也沒有 skippedClaims reason；`
+      + '這是主張靜默丟拍；寫 skip 原因或補拍。');
+  }
+  const claimCoverage = {
+    claims: claimAudit.claims,
+    coveredByBeat: claimAudit.coveredByBeat,
+    coveredBySkip: claimAudit.coveredBySkip,
+  };
   if (targets.length < specs.length) {
     throw new Error(`格 ${slot.id} 有 ${specs.length} 個空間拍點（${specs.map((spec) => spec.rect).join('、')}），`
-      + `但 shot-plan.json 只有 ${targets.length} 個帶 by 的 target。每個框／換頁都要有該句中的文字錨；`
+      + `但 shot data 只有 ${targets.length} 個帶 by 的 target。每個框／換頁都要有該句中的文字錨；`
       + '請重截讓 target 與 focus 成對，或改寫 responsibility／用 plan-hints.json 押回主播。');
   }
-  const selected = targets.slice(0, specs.length);
+  if (!ledger) return { beats: [], visualWindow: null, claimCoverage };
+
+  const charTimes = loadCharTimes();
+  if (!charTimes) {
+    throw new Error(`格 ${slot.id} 是 shot，但缺 asr/script-char-times.json，無法把 targets 解析成拍點；先跑 ASR／align，再重跑 plan-mg。`);
+  }
   let timed;
   try {
     timed = resolveOrderedBeatTimes({
@@ -404,7 +428,7 @@ function resolveShotRhythm(slot, data, lead) {
       dwellSec: Number((dwellUntilSec - beat.arrivalSec).toFixed(4)),
     };
   });
-  return { beats, visualWindow };
+  return { beats, visualWindow, claimCoverage };
 }
 
 // 建構卡的資料只來自 mg-overrides.json（那是編輯寫的內容，不抽），這裡把 atText
@@ -482,14 +506,16 @@ for (const s of plan) {
   };
   let beats = [];
   let visualWindow = null;
+  let claimCoverage = null;
   if (pick.id === 'shot' && !err) {
-    try { ({ beats, visualWindow } = resolveShotRhythm(s, data, lead)); }
+    try { ({ beats, visualWindow, claimCoverage } = resolveShotRhythm(s, data, lead)); }
     catch (error) { console.error(error.message); process.exit(1); }
   }
   rows.push({
     id: s.id, template: pick.id, why: pick.why,
     nominalSec, actualLead: lead.actualLead, durationSec: Number(lead.renderDuration.toFixed(2)),
     durationFrom: dur.from, sourceText: o.text, responsibility: s.responsibility,
+    ...(claimCoverage ? { claimCoverage } : {}),
     ...(visualWindow ? { visualWindow, beats } : {}),
     extracted: { numbers: f.numbers.map((n) => n.matched), enumMarker: f.enumMarker, contrast: f.contrast },
     data, invalid: err,

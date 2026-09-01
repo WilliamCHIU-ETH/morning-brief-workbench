@@ -13,8 +13,9 @@
  *             只有 assets/ 有 symlink 過去）。
  *   imageW/H  原圖像素。plan-mg 用 imageSize() 量，不由人填。
  *   cropTop   裁掉頂部多少像素（狀態列）。對標片的截圖從 App 標頭開始，沒有 iOS 狀態列。
- *   focus     {x,y,w,h} 原圖像素座標，黃框框住的區域。沒有就不畫框、從頂端顯示。
- *   focus2    可選。第二個框：在 plan-mg 解析出的第二個文字拍點移過去。
+ *   focusList [{x,y,w,h}, ...] 同頁 N 拍的空間槽；存在時取代 focus／focus2，至少一項。
+ *   focus／focus2 舊格式維持相容，內部依序映射成 focusList。
+ *   second    可選。接在全部同頁拍之後，以交叉淡變切到第二頁。
  *
  * 幾何：截圖等比縮到舞台寬 984px，垂直位移讓 focus 置中；#stage 由 comp-shell 保證避開
  * 標題板（y<254）與字幕框（y>1350）。
@@ -60,6 +61,12 @@ const colorWithAlpha = (hex, alpha) => {
 const rectOk = (r, W, H) => r && num(r.x) && num(r.y) && num(r.w) && num(r.h)
   && r.w > 0 && r.h > 0 && r.x >= 0 && r.y >= 0 && r.x + r.w <= W && r.y + r.h <= H;
 
+/** focusList 存在時完全取代舊 focus／focus2；否則把舊格式映成同一個內部序列。 */
+export function shotFocusList(data) {
+  if (data && Object.prototype.hasOwnProperty.call(data, 'focusList')) return data.focusList;
+  return [data?.focus, data?.focus2].filter(Boolean);
+}
+
 export const SHOT = {
   shiftY: 0,
   required: ['image', 'imageW', 'imageH'],
@@ -70,16 +77,20 @@ export const SHOT = {
     if (!num(d.imageW) || !num(d.imageH) || d.imageW <= 0 || d.imageH <= 0) return 'shot 需要 imageW／imageH（由 plan-mg 量，不手填）';
     if (!num(d.cropTop) || d.cropTop < 0 || d.cropTop >= d.imageH) return 'cropTop 必須是 0 ～ imageH 之間的像素數';
     const H = d.imageH - d.cropTop;
-    if (d.focus && !rectOk({ ...d.focus, y: d.focus.y - d.cropTop }, d.imageW, H)) {
-      return `focus 不在圖內（圖 ${d.imageW}×${d.imageH}，cropTop ${d.cropTop}）：${JSON.stringify(d.focus)}`;
+    const explicitFocusList = Object.prototype.hasOwnProperty.call(d, 'focusList');
+    if (explicitFocusList && (!Array.isArray(d.focusList) || !d.focusList.length)) {
+      return 'focusList 存在時必須是至少一項的 rect 陣列';
     }
-    if (d.focus2 && !d.focus) return 'focus2 需要先有 focus';
-    if (d.focus2 && !rectOk({ ...d.focus2, y: d.focus2.y - d.cropTop }, d.imageW, H)) {
-      return `focus2 不在圖內：${JSON.stringify(d.focus2)}`;
+    if (!explicitFocusList && d.focus2 && !d.focus) return 'focus2 需要先有 focus';
+    const focuses = shotFocusList(d);
+    if (!Array.isArray(focuses) || !focuses.length) return 'shot 需要 focus，或至少一項 focusList';
+    for (const [index, focus] of focuses.entries()) {
+      if (!rectOk({ ...focus, y: focus?.y - d.cropTop }, d.imageW, H)) {
+        return `focusList[${index}] 不在圖內（圖 ${d.imageW}×${d.imageH}，cropTop ${d.cropTop}）：${JSON.stringify(focus)}`;
+      }
     }
-    // second：同一格接續第二頁（對標片「講到下一個數字就換頁」）。拍點處交叉淡變，各自有黃框。
+    // second：同一格的全部同頁拍結束後接續第二頁。拍點處交叉淡變，各自有黃框。
     if (d.second) {
-      if (d.focus2) return 'second 與 focus2 擇一：換頁與同頁移框不能同時用';
       const e = d.second;
       if (!e.image || typeof e.image !== 'string' || !e.image.startsWith('assets/')) {
         return `second.image 必須是 assets/ 底下的路徑，收到 ${e && e.image}`;
@@ -114,14 +125,15 @@ export const SHOT = {
       return Math.max(minY, Math.min(0, STAGE_H / 2 - cy));
     };
     const r = (v) => Number(v.toFixed(1));
-    const b1 = d.focus ? box(d.focus) : null;
-    const b2 = d.focus2 ? box(d.focus2) : null;
-    const y1 = yFor(d.focus);
-    const y2 = d.focus2 ? yFor(d.focus2) : y1;
+    const focuses = shotFocusList(d);
+    const boxes = focuses.map(box);
+    const focusYs = focuses.map(yFor);
+    const b1 = boxes[0];
+    const y1 = focusYs[0];
 
-    // 推近的原點放在黃框中心（沒框就放舞台中心），這樣框住的東西在推近時不會漂走
-    const ox = b1 ? r(b1.left + b1.width / 2) : STAGE_W / 2;
-    const oy = b1 ? r(b1.top + b1.height / 2) : STAGE_H / 2;
+    // 推近的原點放在第一拍黃框中心，後續 N 拍都以同一原點做絕對 transform。
+    const ox = r(b1.left + b1.width / 2);
+    const oy = r(b1.top + b1.height / 2);
 
     const sec = d.second;
     let secCss = '';
@@ -164,23 +176,25 @@ ${secCss}`;
 ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;width:${r(b1.width)}px;height:${r(b1.height)}px"></div>` : ''}
       </div>${secBody}`;
 
-    // 畫面本身先在視覺窗口露出；黃框／換頁用 plan-mg 算好的 P3 transition 起點，
-    // 不再等到 anchor 起音才動。沒有 ASR 的付費前預覽才退回比例值。
+    // 畫面本身先在視覺窗口露出；同頁 N 拍與換頁都使用 planner 算好的 P3 transition。
+    // 沒有 ASR 的付費前預覽才依序退回比例時間，仍不限制 focusList 長度。
     const tl = (dur) => {
-      const beatFor = (kind) => beats.find((beat) => beat.kind === kind);
-      const localAt = (kind, fallback) => {
-        const beat = beatFor(kind);
+      const samePageBeats = beats.filter((beat) => beat.kind === 'focus' || beat.kind === 'focus2');
+      const beatForFocus = (index) => beats.find((beat) => Number(beat.focusIndex) === index)
+        ?? samePageBeats[index];
+      const localAt = (beat, fallback) => {
         const value = Number(beat?.localTransitionStartSec ?? beat?.localSec);
         return Math.max(0, Math.min(dur - 0.05, Number.isFinite(value) ? value : fallback));
       };
-      const focusBeat = beatFor('focus');
-      const focus2Beat = beatFor('focus2');
-      const secondBeat = beatFor('second');
-      const focusAt = localAt('focus', 0.4);
-      const focus2At = localAt('focus2', Math.max(0.9, dur * 0.55));
-      const secondAt = localAt('second', Math.max(0.9, dur * 0.55));
-      const focusTweenSec = Number(focusBeat?.tweenSec ?? shotBeatTweenSec('focus'));
-      const focus2TweenSec = Number(focus2Beat?.tweenSec ?? shotBeatTweenSec('focus2'));
+      const focusAts = focuses.map((_, index) => localAt(
+        beatForFocus(index),
+        index === 0 ? 0.4 : Math.max(0.9, dur * ((index + 1) / (focuses.length + 1))),
+      ));
+      const secondBeat = beats.find((beat) => beat.kind === 'second');
+      const secondAt = localAt(
+        secondBeat,
+        Math.max(0.9, dur * ((focuses.length + 1) / (focuses.length + 2))),
+      );
       const parts = [
         // 初始位移交給 GSAP（tl.set 是 0 秒 tween，seek-safe）。寫在 CSS transform 會被
         // GSAP 的 y／scale tween 整條覆蓋（lint:gsap_css_transform_conflict）。
@@ -190,9 +204,20 @@ ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;widt
         // 但 hyperframes check 的 layout:sweep_static 會把長時間完全不動的格判 error。
         `  tl.fromTo('#shot',{scale:1},{scale:1.03,duration:${dur.toFixed(2)},ease:'none'},0);`,
       ];
-      if (b1) {
-        parts.push(`  tl.fromTo('#hl',{autoAlpha:0,scale:.82},{autoAlpha:1,scale:1,duration:${focusTweenSec.toFixed(2)},ease:'back.out(1.5)'},${focusAt.toFixed(2)});`);
+      const firstBeat = beatForFocus(0);
+      const firstTweenSec = Number(firstBeat?.tweenSec ?? shotBeatTweenSec('focus'));
+      parts.push(`  tl.fromTo('#hl',{autoAlpha:0,scale:.82},{autoAlpha:1,scale:1,duration:${firstTweenSec.toFixed(2)},ease:'back.out(1.5)'},${focusAts[0].toFixed(2)});`);
+
+      for (let index = 1; index < boxes.length; index++) {
+        const target = boxes[index];
+        const beat = beatForFocus(index);
+        const tweenSec = Number(beat?.tweenSec ?? shotBeatTweenSec('focus2'));
+        const at = focusAts[index].toFixed(2);
+        parts.push(`  tl.to('#shot',{y:${r(focusYs[index])},duration:${tweenSec.toFixed(2)},ease:'power2.inOut'},${at});`);
+        // 每一拍都以第一框為原點寫絕對 transform；N>2 時不會累積前一拍的相對誤差。
+        parts.push(`  tl.to('#hl',{x:${r(target.left - b1.left)},y:${r(target.top - b1.top)},width:${r(target.width)},height:${r(target.height)},duration:${tweenSec.toFixed(2)},ease:'power2.inOut'},${at});`);
       }
+
       if (g2) {
         const at = secondAt.toFixed(2);
         parts.push(`  tl.set('#shot2',{y:${r(g2.y)},autoAlpha:0},0);`);
@@ -215,12 +240,6 @@ ${b1 ? `        <div id="hl" style="left:${r(b1.left)}px;top:${r(b1.top)}px;widt
             parts.push(`  tl.to('#hl2',{x:${r(g2.b2.left - g2.b.left)},y:${r(g2.b2.top - g2.b.top)},width:${r(g2.b2.width)},height:${r(g2.b2.height)},duration:${SHOT_BEAT_TIMING.secondFocus2Sec.toFixed(2)},ease:'power2.inOut'},${at2.toFixed(2)});`);
           }
         }
-      }
-      if (b2) {
-        const at = focus2At.toFixed(2);
-        parts.push(`  tl.to('#shot',{y:${r(y2)},duration:${focus2TweenSec.toFixed(2)},ease:'power2.inOut'},${at});`);
-        // 框移走 transform（left/top 是 layout 屬性，會整數像素跳動：lint:gsap_non_transform_motion）
-        parts.push(`  tl.to('#hl',{x:${r(b2.left - b1.left)},y:${r(b2.top - b1.top)},width:${r(b2.width)},height:${r(b2.height)},duration:${focus2TweenSec.toFixed(2)},ease:'power2.inOut'},${at});`);
       }
       return `\n${parts.join('\n')}\n`;
     };

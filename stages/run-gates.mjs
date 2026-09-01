@@ -23,9 +23,10 @@ import {
   checkAudioShaMatchesTrack,
   payloadContractDifferences,
 } from './lib/heygen-audio.mjs';
-import { imageSize } from './shot-template.mjs';
+import { imageSize, shotFocusList } from './shot-template.mjs';
 import { axDateMatchesDataAsOf, normalizeIsoDate } from './lib/as-of-shot.mjs';
 import { shotBeatTweenSec } from './lib/rhythm.mjs';
+import { auditShotClaimCoverage } from './lib/shot-claims.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(here, '..');
@@ -464,15 +465,21 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
     if (!e) { bad.push(`${s.id}（shot-plan 沒有這格）`); continue; }
     const abs = e.image ? path.join(P.root, e.image) : null;
     if (!abs || !fs.existsSync(abs)) { bad.push(`${s.id}（截圖檔不存在）`); continue; }
-    // 沒有 focus ＝ 這句話沒有可指的數字或列表。對標片 16 個素材格全部有；
-    // 沒有可指之物的句子該留在主播臉上，不是放一張無關的截圖。
-    if (!e.focus) { bad.push(`${s.id}（沒有 focus）`); continue; }
+    // focusList 存在時取代舊 focus／focus2；沒有任何同頁 focus 代表這句沒有可指證據。
+    const explicitFocusList = Object.prototype.hasOwnProperty.call(e, 'focusList');
+    if (explicitFocusList && (!Array.isArray(e.focusList) || !e.focusList.length)) {
+      bad.push(`${s.id}（focusList 不是至少一項的陣列）`); continue;
+    }
+    const focuses = shotFocusList(e);
+    if (!Array.isArray(focuses) || !focuses.length) { bad.push(`${s.id}（沒有 focus／focusList）`); continue; }
     const { w, h } = imageSize(abs);
-    const f = e.focus;
-    const inside = f.w > 0 && f.h > 0 && f.x >= 0 && f.y >= 0 && f.x + f.w <= w && f.y + f.h <= h;
-    if (!inside) bad.push(`${s.id}（focus 超出圖外 ${w}×${h}）`);
+    for (const [index, focus] of focuses.entries()) {
+      const inside = focus && focus.w > 0 && focus.h > 0 && focus.x >= 0 && focus.y >= 0
+        && focus.x + focus.w <= w && focus.y + focus.h <= h;
+      if (!inside) bad.push(`${s.id}（focusList[${index}] 超出圖外 ${w}×${h}）`);
+    }
   }
-  return { ok: !bad.length, measured: bad.length ? bad.join('、') : `${mg.length}/${mg.length} 格都有截圖與 focus` };
+  return { ok: !bad.length, measured: bad.length ? bad.join('、') : `${mg.length}/${mg.length} 格都有截圖與 focus／focusList` };
 });
 
 // 視覺窗口只量 shot 圖層，不改 ledger coverage／alternation 的句子語意。
@@ -500,15 +507,18 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
         const minBeatGapSec = Number(threshold.minBeatGapSec);
         const leadSec = Number(threshold.leadSec);
         const dwellMinSec = Number(threshold.dwellMinSec);
+        const claimCoverage = threshold.claimCoverage;
         if (!(Number.isFinite(minSec) && Number.isFinite(maxSec) && minSec > 0 && maxSec >= minSec
           && Number.isFinite(fadeSec) && fadeSec > 0
           && Number.isFinite(minBeatGapSec) && minBeatGapSec >= 0
           && Number.isFinite(leadSec) && leadSec >= 0
-          && Number.isFinite(dwellMinSec) && dwellMinSec >= 0)) {
-          throw new Error('acceptance.json 的 shot.visual-window minSec／maxSec／fadeSec／minBeatGapSec／leadSec／dwellMinSec 不合法');
+          && Number.isFinite(dwellMinSec) && dwellMinSec >= 0
+          && claimCoverage === true)) {
+          throw new Error('acceptance.json 的 shot.visual-window minSec／maxSec／fadeSec／minBeatGapSec／leadSec／dwellMinSec／claimCoverage 不合法');
         }
         const segments = new Map(load('segmentLedger').segments
           .map((segment) => [String(segment.id), segment]));
+        const sourceShotSlots = has('shotPlan') ? (load('shotPlan').slots ?? {}) : null;
         const bad = [];
         const measured = [];
         const overMax = [];
@@ -536,6 +546,24 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
           }
           const beats = Array.isArray(slot.beats) ? slot.beats : [];
           let lastReadableDwell = null;
+          let claimMeasured = null;
+          const sourceShot = sourceShotSlots?.[slot.id];
+          if (!sourceShot) {
+            bad.push(`${slot.id} 缺 shot-plan 原始 targets，無法驗主張涵蓋`);
+          } else {
+            const claimAudit = auditShotClaimCoverage({
+              targets: sourceShot.targets,
+              sourceText: segment.anchor,
+              beatAnchors: beats.map((beat) => beat.anchor),
+              skippedClaims: slot.data?.skippedClaims,
+            });
+            for (const error of claimAudit.errors) bad.push(`${slot.id} ${error}`);
+            if (claimAudit.missing.length) {
+              bad.push(`${slot.id} 講稿數字主張「${claimAudit.missing.join('、')}」未被 beats／skippedClaims 涵蓋；這是主張靜默丟拍，寫 skip 原因或補拍`);
+            }
+            const covered = claimAudit.coveredByBeat.length + claimAudit.coveredBySkip.length;
+            claimMeasured = `主張 ${covered}/${claimAudit.claims.length}`;
+          }
           if (!beats.length) {
             bad.push(`${slot.id} 0 個拍點`);
           } else {
@@ -622,7 +650,7 @@ gate('shot.focus-present', ['segmentPlan', 'shotPlan'], () => {
               }
             }
           }
-          measured.push(`${slot.id} ${duration.toFixed(2)}s/${beats.length}拍${lastReadableDwell === null ? '' : `／末拍停留 ${lastReadableDwell.toFixed(2)}s`}`);
+          measured.push(`${slot.id} ${duration.toFixed(2)}s/${beats.length}拍${lastReadableDwell === null ? '' : `／末拍停留 ${lastReadableDwell.toFixed(2)}s`}${claimMeasured ? `／${claimMeasured}` : ''}`);
         }
         record(id, bad.length ? 'failed' : 'passed',
           bad.length ? bad.slice(0, 5).join('；') : measured.join('、'),
