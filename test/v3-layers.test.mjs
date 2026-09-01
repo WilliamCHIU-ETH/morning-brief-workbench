@@ -515,6 +515,43 @@ test('emphasis list 同字幕內仍依逐字時間逐項進場，已講項降灰
   assert.match(html, /#emphasis-list-1-item-1'.*opacity:0\.5.*46\.3800/);
 });
 
+test('emphasis list titleMatch 讓卡片先於第一項進場', (t) => {
+  const { dir } = prepareBuildProject(t);
+  writeJson(path.join(dir, 'emphasis.json'), [{
+    type: 'list',
+    title: '先看這件事',
+    titleMatch: '只剩題材',
+    items: [
+      { text: '第一', match: '量能跟不上' },
+    ],
+    untilMatch: '就先不要追價',
+  }]);
+  const result = run(BUILD_MAIN, dir);
+  assert.equal(result.status, 0, result.stderr);
+  const html = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+  const cardTween = html.match(/#emphasis-list-1',\{opacity:1,[^}]*\},(\d+\.\d{4})/);
+  assert.ok(cardTween, '找不到卡片進場 tween');
+  assert.equal(cardTween[1], '45.8000');
+  assert.match(html, /#emphasis-list-1-item-1'.*46\.3800/);
+});
+
+test('emphasis list titleMatch 晚於第一項會拒絕', (t) => {
+  const { dir } = prepareBuildProject(t);
+  writeJson(path.join(dir, 'emphasis.json'), [{
+    type: 'list',
+    title: '標題太晚',
+    titleMatch: '量能跟不上',
+    items: [
+      { text: '第一', match: '只剩題材' },
+      { text: '第二', match: '鼎元的量能有沒有延續' },
+    ],
+    untilMatch: '就先不要追價',
+  }]);
+  const result = run(BUILD_MAIN, dir);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /titleMatch.*晚於第一個 item/);
+});
+
 test('emphasis list item 時間反向會拒絕', (t) => {
   const { dir } = prepareBuildProject(t);
   writeJson(path.join(dir, 'emphasis.json'), [{

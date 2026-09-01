@@ -489,6 +489,17 @@ if (fs.existsSync(emphasisFile)) {
       });
       const until = timeFor(entry.untilMatch, `${where} untilMatch`);
       const untilAt = shift(until.startSec);
+      // titleMatch 是卡片（標題）自己的進場錨；沒有就沿用第一項的時間。
+      // 標題不得晚於第一項——item 進場動畫掛在卡片底下，卡片還沒現身 item 會憑空出現。
+      let cardAt = items[0].at;
+      if (entry.titleMatch !== undefined) {
+        const titleTiming = timeFor(entry.titleMatch, `${where} titleMatch`);
+        cardAt = shift(titleTiming.startSec);
+        if (cardAt > items[0].at) {
+          die(`${where} 的 titleMatch「${entry.titleMatch}」時間 ${cardAt}s 晚於第一個 item「${items[0].text}」${items[0].at}s；`
+            + `標題必須先於（或同時於）第一項進場。`);
+        }
+      }
       for (let itemIndex = 1; itemIndex < items.length; itemIndex++) {
         if (items[itemIndex].at < items[itemIndex - 1].at) {
           die(`${where} 的 item 順序反了：「${items[itemIndex - 1].text}」${items[itemIndex - 1].at}s 晚於「${items[itemIndex].text}」${items[itemIndex].at}s。`);
@@ -501,7 +512,7 @@ if (fs.existsSync(emphasisFile)) {
       const naturalExit = n4(untilAt + L.emphasis.list.outSec);
       requireExitWithinDuration(where, naturalExit);
       const aligned = alignEmphasisExit({
-        where, label: entry.title, displayStart: items[0].at,
+        where, label: entry.title, displayStart: cardAt,
         exitAnchor: untilAt, naturalEnd: naturalExit, exitMatch: entry.untilMatch,
       });
       return {
@@ -509,7 +520,7 @@ if (fs.existsSync(emphasisFile)) {
         kind: 'list',
         id: `emphasis-list-${index + 1}`,
         items,
-        at: items[0].at,
+        at: cardAt,
         untilAt,
         exitAt: aligned.exitAt,
         fadeAt: n4(aligned.exitAt - L.emphasis.list.outSec),
