@@ -572,14 +572,14 @@ export async function runVoiceMinimax(argv = process.argv.slice(2), { fetchImpl 
       '[--track <file.mp3>] [--parts <dir>]', 2);
   }
   const cmd = argv.find((arg) => ['dryrun', 'synth', 'adopt'].includes(arg)) ?? 'dryrun';
-  // synth 與 adopt 都在產出／採用 voice/track.mp3，執行完專案就在音檔路線上，
-  // 所以它們自己必須用 audioRouteExpected 檢查，不能等 track.mp3 出現才算。
-  // dryrun 維持看 fs.existsSync：沒有音檔的專案還沒選定路線，這是刻意設計，
-  // 由 test/voice-route.test.mjs「speedDivisor 文字路線取 expected…」那條守著。
-  // 2026-08-31 實測：少了 synth 這一項，第一次 synth 被當文字路線、逼 speedDivisor=1.1，
-  // 整軌出來 76.8s；而 speedup.mjs 這時已看得到 track.mp3、永遠取 factor 1.0，
-  // 那個 1.1 沒有任何階段補得回來。改正後同一份講稿 58.6s。
-  const audioRoute = cmd === 'adopt' || cmd === 'synth' || fs.existsSync(P.path('voiceTrack'));
+  // 會執行本 CLI 就等於專案選了音檔路線（本 CLI 沒有 voice.json 根本跑不動），
+  // 三個子命令一律用 audioRouteExpected 驗 speedDivisor。沿革：
+  // 2026-08-31 上午——synth 少了自我認定，第一次 synth 被當文字路線、逼 speedDivisor=1.1，
+  // 整軌 76.8s，且沒有任何後續階段補得回來（speedup 看到 track.mp3 永遠取 1.0）。
+  // 2026-08-31 深夜冷啟動 E2E——dryrun 還留著「track.mp3 不在就當文字路線」的舊判準，
+  // 而 init-project 骨架已寫音檔路線的 speedDivisor=1，於是每個新專案的 dryrun 必報錯，
+  // 冷 agent 只能繞道用唯讀 buildVoicePlan 自己算。文字路線（HeyGen TTS）根本不會進到這支程式。
+  const audioRoute = true;
   const { plan } = readVoicePlan(P, { audioRoute });
   if (cmd === 'dryrun') {
     printDryrun(P, plan);

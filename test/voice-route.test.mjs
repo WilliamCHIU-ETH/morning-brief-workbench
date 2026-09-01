@@ -119,7 +119,7 @@ test('voice speedDivisor 與契約不一致時 CLI exit 1', () => {
   });
   const result = run(VOICE, ['--project', dir, 'dryrun']);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /配音先除、speedup 再乘必須是同一倍率/);
+  assert.match(result.stderr, /audioRouteExpected=1（音檔路線）/);
 });
 
 test('speedDivisor 文字路線取 expected，音檔路線取 audioRouteExpected', () => {
@@ -133,11 +133,14 @@ test('speedDivisor 文字路線取 expected，音檔路線取 audioRouteExpected
     () => buildVoicePlan(script, config({ speedDivisor: 1.1 }), { audioRoute: true }),
     /video\.speed-factor\.audioRouteExpected=1.*音檔路線/);
 
+  // CLI 層：會呼叫 voice-minimax 就是音檔路線，track.mp3 在不在都一樣。
+  // 舊判準（track 不在＝文字路線）在 init 骨架預設 speedDivisor=1 之後，
+  // 會讓每個新專案的 dryrun 必報錯——2026-09-01 冷啟動 E2E 實測踩到，收斂為本行為。
   const dir = makeProject({
     paragraphs: ['第一段？', '第二段。', '第三段。'],
     voice: config({ speedDivisor: 1 }),
   });
-  assert.equal(run(VOICE, ['--project', dir, 'dryrun']).status, 1);
+  assert.equal(run(VOICE, ['--project', dir, 'dryrun']).status, 0);
   makeAudio(path.join(dir, 'voice', 'track.mp3'));
   assert.equal(run(VOICE, ['--project', dir, 'dryrun']).status, 0);
 });
@@ -175,7 +178,7 @@ test('pause 目標命中多次時拒絕', () => {
 });
 
 test('voice dryrun 使用會 throw 的 fetch stub 仍成功，未發網路請求', async () => {
-  const dir = makeProject({ paragraphs: ['第一段？', '第二段。', '第三段。'] });
+  const dir = makeProject({ paragraphs: ['第一段？', '第二段。', '第三段。'], voice: config({ speedDivisor: 1 }) });
   const output = [];
   const originalLog = console.log;
   console.log = (...args) => output.push(args.join(' '));
