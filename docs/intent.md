@@ -1,6 +1,8 @@
 # 現行迭代
 
-→ [`intents/2026-09-01-audit-0827-cold.md`](intents/2026-09-01-audit-0827-cold.md)（0827 冷測 audit 回寫；已結案）
+→ [`intents/2026-09-01-rhythm-and-beats.md`](intents/2026-09-01-rhythm-and-beats.md)（視覺窗口與拍點，進行中）
+
+前一份：[`intents/2026-09-01-audit-0827-cold.md`](intents/2026-09-01-audit-0827-cold.md)（0827 冷測 audit 回寫；已結案）
 
 前一份：[`intents/2026-08-31-solidify-golden.md`](intents/2026-08-31-solidify-golden.md)（golden 固化＋冷啟動 E2E；已結案）
 
