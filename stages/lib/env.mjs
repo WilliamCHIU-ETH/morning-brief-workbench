@@ -4,8 +4,8 @@
  * 刻意不用 dotenv 套件——這個 repo 的 node_modules 是空的，為了一個 15 行的
  * 解析器裝一個依賴不划算，而且 npm install 會變成跑起來的前置條件。
  *
- * 金鑰**不進版控**（.gitignore 有 .env）。workbench 與 marketing-video 是兩個
- * 互不依賴的實作，各自持有一份 .env——**不要去對方那裡讀金鑰**，那會把解耦破掉。
+ * 金鑰**不進版控**（.gitignore 有 .env）。這個 repo 只讀自己的那一份——
+ * **不要去別的專案目錄讀金鑰**，那會把解耦破掉。
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -42,6 +42,6 @@ export function requireEnv(name, hint) {
   console.error(`  cp .env.example .env   然後把值填進去`);
   console.error(`或單次覆寫：  ${name}=xxx npm run <script> -- --project <dir>`);
   if (hint) console.error(hint);
-  console.error('**不要去 marketing-video 讀它的 .env。** 兩個 repo 刻意互不依賴，各自持有一份。');
+  console.error('**只讀這個 repo 自己的 .env。** 不要去別的專案目錄找金鑰。');
   process.exit(5);
 }

@@ -492,7 +492,7 @@
     "derivation": "五個實測點跨 220–329 字，離散度 4.4%，取上下緣為區間。",
     "appliesTo": "ffmpeg 加速路徑（API 1.2x 得 4.76；網頁 Studio 1.1x 實測 4.86，兩者都落在區間內）。",
     "doesNotApplyTo": "HeyGen voice_settings.speed。TTS 改速是重新合成而非時間拉伸，那條路徑的字/秒尚未量測，見 avatar-generation.json 的 candidates。",
-    "source": "marketing-video/晨報講稿時長換算表.md",
+    "source": "文字晨報的講稿時長換算表（外部文件，不在本 repo）",
     "audioRouteRateBand": [
       3.69,
       3.91
