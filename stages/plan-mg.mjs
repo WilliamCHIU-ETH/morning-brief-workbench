@@ -406,8 +406,12 @@ function resolveShotRhythm(slot, data, lead) {
     leadSec: rhythmLeadSec,
     tailSec: Number(visualWindowThreshold.tailSec),
     // 2s 是 gate 硬下界；單拍靜態 shot 以 3s 為規劃中心，對齊本次 audit 對格 04 的 3–4s 判準。
+    // 規劃中心不是硬界：句子本身比 3s 短（但仍 >= gate 下界）時，窗口就填滿整句，
+    // 不因為「中心放不下」把一格合法的截圖整個擋掉（2026-09-03 亞光片格 08，2.80s 單拍）。
     minSec: beats.length === 1
-      ? Number(visualWindowThreshold.singleBeatTargetMinSec ?? visualWindowThreshold.minSec)
+      ? Math.max(Number(visualWindowThreshold.minSec),
+        Math.min(Number(visualWindowThreshold.singleBeatTargetMinSec ?? visualWindowThreshold.minSec),
+          Number((segment.endSec - segment.startSec).toFixed(4))))
       : Number(visualWindowThreshold.minSec),
     maxSec: Number(visualWindowThreshold.maxSec),
     fadeSec: Number(visualWindowThreshold.fadeSec),

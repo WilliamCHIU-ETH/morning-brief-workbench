@@ -136,7 +136,7 @@ try {
   ensureDirectory(path.join(project, 'public'), 'public/');
 
   // Golden 樣式收為新專案預設。沿革：2026-08-29 光環 V2 以 intro: true 收為預設；
-  // 2026-08-30 主管反饋後 V3 換成「主播模糊開場＋金色雙行大標＋HOOK 常駐標題板＋bgm＋lead 0.4」，
+  // 2026-08-30 審閱反饋後 V3 換成「主播模糊開場＋金色雙行大標＋HOOK 常駐標題板＋bgm＋lead 0.4」，
   // 光環 V3 與 0831 金居 v7 兩支正式樣本逐欄相同（docs/editing-techniques.md 有每一招的出處）。
   // openTitle.main／sub 刻意留空：那是編輯意圖（從講稿 HOOK 提煉、main 建議 8 字走 4/4 斷行），
   // 程式不代填，build-main 會擋空字串。只在檔案不存在時寫，既有專案一個位元組都不動。

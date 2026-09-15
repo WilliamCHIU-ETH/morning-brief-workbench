@@ -88,14 +88,11 @@ state=official_close）。但 App 每一頁的 sticky 頁首永遠顯示「現�
    - 構圖整體不如即時頁 header（對標樣本沒有這種日K特寫）。
    所以 --as-of 是「開盤前窗口錯過時的證據通道」，不是視覺上的等價替代。
 
-**「回溯時間」的邊界（2026-09-01 以 [internal-repo-removed] 原始碼查證，不是猜測）**：
-- header 報價是 WebSocket 依股票代碼訂閱的即時推播（`[internal-source-removed]` 的
-  ApiConfig 只帶 target、無任何日期欄位；新舊靠傳輸序號 sn）——**改裝置時鐘不會讓 header
+**「回溯時間」的邊界（2026-09-01 查證該 App 原始碼後確認，不是猜測。原始碼屬公司內部資產，這裡只記結論）**：
+- header 報價是依股票代碼訂閱的即時推播，請求不帶任何日期欄位，新舊靠傳輸序號分辨——**改裝置時鐘不會讓 header
   顯示過去收盤**，頂多讓連線壞掉。`simctl status_bar override` 只改狀態列貼皮，更不算。
-- 全專案（含 [internal-identifier-removed] target）**沒有任何「指定觀察日期」機制**：該 target 的
-  [internal-buildsetting-removed] 是空的，連 DEBUG 開發面板都不會被編譯進去。
-- 查價線的日期與 OHLC 是本地已載入的 K 線陣列索引（`[internal-source-removed]`
-  hightlightUpdate），選取當下不打 API。**它只是一般的圖表十字線功能，不是「時間回溯」**——
+- 該 App **沒有任何「指定觀察日期」機制**，也沒有會被編進正式版的除錯面板。
+- 查價線的日期與 OHLC 讀的是本地已載入的 K 線陣列，選取當下不打 API。**它只是一般的圖表十字線功能，不是「時間回溯」**——
   任何看盤軟體都能在歷史K棒上讀到當日開高低收。--as-of 用它當「數字證據」可以，
   但不要把它說成 App 有回溯能力；App 沒有。
 
@@ -140,10 +137,10 @@ state=official_close）。但 App 每一頁的 sticky 頁首永遠顯示「現�
 5. **［完成 2026-08-29］同頁連放守門**：連續兩格「同標的＋同錨點」時自動換該頁下一順位錨點，換不出來則警告。
 6. **［保留並記錄］responsibility 會導頁**：`resolve()` 吃 anchor＋responsibility 兩段文字，
    responsibility 寫「K線」「營收」「量能」會改路由——這是編輯意圖的一部分，刻意保留（AGENTS.md 第 5 步有注記）。
-7. **［完成 2026-08-29］產業句 → 產業排行卡**：deep link `page=index&[internal-deeplink-removed]&[internal-deeplink-removed]`；sectorId／名稱抄 `[internal-repo-removed]/Files/[internal-asset-removed]`，框被點名產業的 3×2 排行卡。
+7. **［完成 2026-08-29］產業句 → 產業排行卡**：以 deep link 開該 App 的產業排行頁，框被點名產業的 3×2 排行卡。（deep link 參數與產業代碼對照取自公司內部 repo，不記錄於此。）
 8. **［進行中 2026-08-31］歷史日K模式 `--as-of`**：見上方「時間語意」節；
    截圖驗證欄位（dataAsOf／axDate／axOhlc）寫進 shot-plan.json，配套門檻 `shot.data-as-of`。
-9. **［完成 2026-08-29］美股預告句 → 美股行情頁**：deep link `page=index&[internal-deeplink-removed]&[internal-deeplink-removed]`；框被點名指數卡／行情列，或捲到盤後焦點個股列。
+9. **［完成 2026-08-29］美股預告句 → 美股行情頁**：以 deep link 開該 App 的美股行情頁（參數不記錄於此）；框被點名指數卡／行情列，或捲到盤後焦點個股列。
 6. **［不做］盤後日報式片尾 CTA demo**：台股晨報無口播 CTA，不適用。
 7. **［刻意偏離］營收句仍配個股營收頁**：對標在引 EPS／營收時停留在即時頁（#7），
    但 App 營收頁的標題「本月營收創新高(近N個月)」正好是那句話的可指物，對題性更強
