@@ -2,21 +2,18 @@
 
 這份檔案回答三件事：**剪輯師手上有哪些招、我們是從哪支片學的、那支片長什麼樣子。**
 它不是復刻手冊——目標是復刻思路，不是逐格重做。每一招都寫成「觀眾感受到什麼 → 對標怎麼用 →
-我們用什麼原語做 → 目前狀態」。狀態欄由迭代的 intent（`docs/intents/`）回寫。
+我們用什麼原語做 → 目前狀態」。
 
-原始素材（mp4、逐秒定格、whisper 轉錄）放 `docs/reference-reels/local/<reel-id>/`，**不進版控**（.gitignore）。
-規則層在這裡與 `docs/reference-reels.md`（大盤小報／三大法人的逐秒拆解）。
+對標影片的原始素材（mp4、逐秒定格、whisper 轉錄）與逐秒拆解資料都留在本機，**不隨這個 repo 發布**：
+影片有版權，拆解過程也屬內部工作紀錄。這裡只留蒸餾後的技法與我們自己的實作狀態。
 
 ## 參考影片索引
 
-| reel | 帳號／日期 | 類型 | 長度 | 我們從它學什麼 | 本機素材 |
-|---|---|---|---|---|---|
-| DcdUck3IEmy | cmchipk 0825 | 大盤小報 | 74.6s | 素材＝App 截圖＋黃框跟旁白走 | `docs/reference-reels/0825-dapan-xiaobao.jpg` |
-| DcdbYgnIAha | cmchipk 0825 | 三大法人 | 61.0s | 法人數字用設計資料卡，不用 App 頁 | `docs/reference-reels/0825-sanda-faren.jpg` |
-| Dcat_FjIAi0 | cmchipk 0824 | 大盤小報 | 79.0s | 頁面最小集合、同頁不連放 | `docs/reference-reels/0824-dapan-xiaobao.jpg` |
-| **Db7CHk2pope** | cmchipk 0812 | 題材片（人形機器人） | 56.1s | **後製感：層跟旁白呼吸** | `docs/reference-reels/local/Db7CHk2pope/`（reel.mp4、sheet.jpg 每秒一格、keyframes.jpg、whisper.srt） |
+對標四支公開短影音（財經帳號的固定系列：大盤型兩類各兩支，以及一支題材片），長度 56–79 秒。
+逐支的貼文編號、逐秒拆解與定格素材保留在本機，不列於此。蒸餾出來的判斷是：
 
-Db7CHk2pope 是使用者 2026-08-30 指定的「有剪輯手感」範本。
+- 大盤型：素材＝App 截圖，黃框跟著旁白走；法人數字改用設計資料卡，不用 App 頁；頁面取最小集合、同頁不連放。
+- 題材片：後製感來自「層跟著旁白呼吸」——這支是「有剪輯手感」的主要範本，下面的技法多半從它反推。
 
 ## Db7CHk2pope 的結構（量出來的）
 

@@ -1,12 +1,12 @@
 # 現行迭代
 
-→ [`intents/2026-09-01-rhythm-and-beats.md`](intents/2026-09-01-rhythm-and-beats.md)（視覺窗口與拍點，進行中）
+逐輪的 intent 紀錄（問題、framing、量測、裁定、結案）保留在本機，不隨這個 repo 發布——
+那些內容包含審閱回饋原話、成本量測與工作過程，屬內部工作紀錄。
 
-前一份：[`intents/2026-09-01-audit-0827-cold.md`](intents/2026-09-01-audit-0827-cold.md)（0827 冷測 audit 回寫；已結案）
+已落地的結論寫在會被程式讀到的地方，看那裡就夠：
 
-前一份：[`intents/2026-08-31-solidify-golden.md`](intents/2026-08-31-solidify-golden.md)（golden 固化＋冷啟動 E2E；已結案）
-
-前一份：[`intents/2026-08-30-editorial-hand.md`](intents/2026-08-30-editorial-hand.md)（讓成片看得出有人剪過，V3；已結案）
-
-欄位怎麼讀、誰填、何時改：[`intents/README.md`](intents/README.md)。
-剪輯技法目錄與對標片結構：[`editing-techniques.md`](editing-techniques.md)。
+- 產線與各 stage 的入口：[`../AGENTS.md`](../AGENTS.md)
+- 講稿與編輯角色：[`../ROLE.md`](../ROLE.md)
+- 驗收門檻與其依據：[`../contracts/acceptance.json`](../contracts/acceptance.json)
+- 素材格的選頁標準：[`screenshot-standard.md`](screenshot-standard.md)
+- 剪輯技法：[`editing-techniques.md`](editing-techniques.md)
