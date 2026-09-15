@@ -21,7 +21,7 @@
 | ASR 逐字時間 | `npm run asr -- --project <dir>` |
 | 對齊、字幕、組裝 | `stages/align-script.mjs` → `build-segment-ledger` → `build-caption-ledger` → `build-main` |
 | 渲染素材格與成片 | `npm run render -- --project <dir> slots`，組裝後 `… final` |
-| 自動化實機截圖（iOS Simulator＋deep link） | `node stages/capture-shots.mjs --project <dir> [--dryrun] [--as-of YYYY-MM-DD]` |
+| ~~自動化實機截圖~~（2026-09-15 退役） | `stages/capture-shots.mjs` 只回報退役並以 78 結束；素材改由使用者提供 |
 
 ## 已裁定要做、但還沒做的
 
@@ -31,7 +31,7 @@
   會議定的成功場景是「輸入晨報（docx）後端到端產出 mp4」——所以 docx 是你的輸入：自己讀
   （`/opt/anaconda3/bin/python3 -c "import docx"` 可用），依 `ROLE.md` 寫成 `script.txt`，選型跟著 docx 標題走。
 - **實機截圖取代動畫素材。** 會議裁定素材格全面改用 App 實機畫面，動畫素材（MG）全面取消。
-  截圖鏈已上線（capture-shots → shot-plan → shot 版型；2026-08-31 起支援 `--as-of` 歷史日K）；
+  截圖鏈曾經上線（capture-shots → shot-plan → shot 版型），2026-09-15 退役；shot 版型與 shot-plan 契約保留，改吃人工提供的素材；
   `plan-mg.mjs`／`mg-templates.mjs` 的 MG 版型只剩「沒有 shot-plan 的格」的 fallback——那是過渡狀態，不是目標。
   對標物是公開 IG 帳號的固定系列短影音；逐秒拆解與量測資料保留在本機，不隨這個 repo 發布；
   **素材格「哪句配哪頁、框什麼」的標準在 `docs/screenshot-standard.md`**（含反面清單：哪些句子該押回主播）。
