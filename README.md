@@ -4,7 +4,7 @@
 第一支真正對的花了六個版本、四輪人眼 audit,而產線本身不知道它為什麼好,
 下一支可能在十幾個維度裡的任何一個悄悄退化。
 
-**這個工作台做的事**:把「什麼叫做得夠好」寫成 31 道可執行的門檻,
+**這個工作台做的事**:把「什麼叫做得夠好」寫成 33 道可執行的門檻,
 把那支通過驗收的影片完整留成可執行的黃金樣本,讓 agent 走過來一口氣做完下一支。
 **中間只有一道人工關卡:核准付費的主播生成。**
 
@@ -16,6 +16,24 @@
 
 台面上那三層（規格／材料／量規）**都是 agent 讀的與用的，不是給你看的**。
 你不需要打開任何一個檔案，除非你想改規則——那時才去動 `ROLE.md`。
+
+---
+
+## 成片長什麼樣
+
+<img src="docs/stills/v4c-anchor-caption.jpg" width="200"> <img src="docs/stills/v4c-market-card.jpg" width="200"> <img src="docs/stills/v4c-chain-card.jpg" width="200"> <img src="docs/stills/yaguang-v2-checklist.jpg" width="200">
+
+前三格是 `fixtures/project-v4c/` 那支**通過驗收的黃金樣本**（0821 鼎元、49.6 秒、1080×1920、30fps）：
+整片固定的頂欄大標與主播＋字幕、自繪的資訊卡、把因果拆成三段的建構卡。
+第四格是這條線最後一支（0903 亞光、64.9 秒、25fps——畫布幀率跟著主播素材的原生 25fps 走），
+多了 v3 才有的清單卡與編輯層。
+
+**成片與中間產物都不在這個 repo。** `projects/` 是 agent 的工作目錄，gitignore、只在本機；
+這裡留的是方法：規格、33 道門檻、黃金樣本專案、88 個測試案例。本機不需要常駐副本，要用再拉回來：
+
+```bash
+git clone https://github.com/WilliamCHIU-ETH/morning-brief-workbench.git
+```
 
 ---
 
@@ -32,7 +50,7 @@ B-roll 早於語音、第一格素材蓋掉問候。
 把三樣東西攤在同一張台面上,agent 走過來就能開工:
 
 - **規格** — `ROLE.md` 五條規則,每條附機制與**否證條件**。它是拿來改的,不是拿來遵守的。
-- **量規** — 31 道可執行門檻,**每一道都附「它是被什麼事故逼出來的」**。
+- **量規** — 33 道可執行門檻,**每一道都附「它是被什麼事故逼出來的」**。
   數字誰都能猜,失敗紀錄不能。
 - **樣本** — `fixtures/project-v4c/` 是那支通過驗收的完整可執行專案;
   另有 12 個**攻擊樣本**,是曾經騙過門檻的壞輸入,現在被測試鎖住。
@@ -50,7 +68,7 @@ B-roll 早於語音、第一格素材蓋掉問候。
 兩邊各自持有一份素材、一份規格、一份金鑰。
 
 > **為什麼叫工作台。** 工具、材料、作業方法攤在同一張台面上，人或 agent 走過去就能開工，
-> 不必知道工廠其他地方有什麼。`contracts/` 那 31 道門檻是台面上的**量規**——
+> 不必知道工廠其他地方有什麼。`contracts/` 那 33 道門檻是台面上的**量規**——
 > 量規本來就是工作台的標準配備，不是另一件東西。
 >
 > 原本叫 harness。軟體界的 harness 是 test harness，重心在「檢查」而不在「產出」，
@@ -86,7 +104,7 @@ npm install --no-package-lock && npm run demo
 接著：
 
 ```bash
-npm run gates -- --project fixtures/project-v4c    # 完整 31 道
+npm run gates -- --project fixtures/project-v4c    # 完整 33 道
 npm run plan  -- --project fixtures/project-v4c    # 從講稿推導切段
 npm run lint:script fixtures/project-v4c/script.txt # 講稿的機檢
 npm run status -- --project <dir>                   # 現在在哪裡、下一步做什麼
@@ -179,13 +197,13 @@ npm test                                            # 32 個回歸測試
 
 ```
 ROLE.md      講稿寫作規則：五條規則，每條附機制與否證條件
-contracts/   31 道門檻與主播生成的鎖定 payload；一處定義
+contracts/   33 道門檻與主播生成的鎖定 payload；一處定義
 stages/      13 個階段，各做一件事，吃 --project <dir>
 template/    版面契約（brandWash、程式畫開場卡、標題板、字幕）
 fixtures/
   project-v4c/   黃金樣本，完整可執行
   attacks/       12 個攻擊樣本，回歸測試用
-test/        32 個測試
+test/        88 個測試案例
 ```
 
 版本用**目錄**分，不用檔名後綴。`resolveProject()` 遞迴掃到任何 `.vN` 檔名就拒絕執行——
